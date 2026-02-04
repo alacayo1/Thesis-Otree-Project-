@@ -1,0 +1,21 @@
+{{ block title }}Advisor Recommendation{{ endblock }}
+{{ block content }}
+
+<div class="card bg-white border m-3">
+    <div class="card-body text-center text-dark">
+        {% if is_passive %}
+            <h3>Passive Block: Advisor Assigned</h3>
+        {% else %}
+            <h3>Active Block: Advisor Selected</h3>
+        {% endif %}
+        
+        <hr>
+        
+        <h4>{{ advisor_name }} says:</h4>
+        <h1 class="display-3 text-dark">{{ advice }}</h1>
+    </div>
+</div>
+
+{{ next_button }}
+
+{{ endblock }}

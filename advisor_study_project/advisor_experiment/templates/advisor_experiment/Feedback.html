@@ -1,0 +1,27 @@
+{{ block title }}Result{{ endblock }}
+{{ block content }}
+
+<div class="card m-3">
+    <div class="card-body text-center">
+        {% if player.is_correct %}
+            <h2 class="text-success">CORRECT! </h2>
+            <h4>+{{ Constants.bonus_per_correct }}</h4>
+            <p>The correct answer was <strong>{{ correct_answer }}</strong>.</p>
+        {% else %}
+            <h2 class="text-danger">Incorrect</h2>
+            <p>The correct answer was <strong>{{ correct_answer }}</strong>.</p>
+        {% endif %}
+        <p>{{ advisor_name }} picked <strong>{{ advice_picked }}</strong>.</p>
+
+        {% if player.switch_cost_incurred > 0 %}
+            <p class="text-warning">Switching Cost: -{{ player.switch_cost_incurred }}</p>
+        {% endif %}
+
+        <hr>
+        <p>Total Earnings So Far: {{ total_payoff }}</p>
+    </div>
+</div>
+
+{{ next_button }}
+
+{{ endblock }}

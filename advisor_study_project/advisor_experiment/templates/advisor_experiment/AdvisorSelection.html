@@ -1,0 +1,27 @@
+{{ block title }}Choose Your Advisor{{ endblock }}
+{{ block content }}
+
+<div class="card m-3">
+    <div class="card-body">
+        <h4>Which advisor would you like to consult?</h4>
+        <p class="text-danger">{{ cost_text }}</p>
+        
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="selected_advisor_type" value="High" id="high" required>
+            <label class="form-check-label" for="high">
+                <strong>{{ high_name }}</strong> (Historically more accurate)
+            </label>
+        </div>
+        
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="selected_advisor_type" value="Low" id="low">
+            <label class="form-check-label" for="low">
+                <strong>{{ low_name }}</strong> (Historically less accurate)
+            </label>
+        </div>
+    </div>
+</div>
+
+{{ next_button }}
+
+{{ endblock }}

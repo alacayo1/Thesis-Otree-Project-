@@ -1,0 +1,29 @@
+{{ block title }}Initial Prediction{{ endblock }}
+{{ block content }}
+
+<div class="card m-3">
+    <div class="card-body text-center">
+        <h4>What is your prediction?</h4>
+        {{ form.initial_prediction }}
+        
+        <hr>
+        
+        <h4>How confident are you?</h4>
+        <p>50% (Guessing) — 100% (Certain)</p>
+        <div class="mb-3">
+            <input type="range" name="initial_confidence" id="id_initial_confidence" min="50" max="100" value="75" class="form-range" style="max-width: 300px;">
+            <span id="initial_confidence_value">75</span>%
+        </div>
+        {{ formfield_errors 'initial_confidence' }}
+    </div>
+</div>
+
+<script>
+    document.getElementById('id_initial_confidence').oninput = function() {
+        document.getElementById('initial_confidence_value').textContent = this.value;
+    };
+</script>
+
+{{ next_button }}
+
+{{ endblock }}

@@ -1,0 +1,63 @@
+{{ block title }}Advisor odds{{ endblock }}
+{{ block content }}
+
+<style>
+.table.advisor-odds-table tbody td { font-weight: normal; }
+</style>
+
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <p>
+            Don't worry! You will have help! Every round, you can get advice from a member of one of two pixel
+            consulting groups: Dots &amp; Co. and PixelHouse.
+            <strong>Dots &amp; Co. has a better reputation for accuracy</strong>, but that might not be true for you!
+            Advisors from each company have different accuracy rates. The accuracy levels and the odds of getting
+            each level are given in the tables below.
+        </p>
+    </div>
+</div>
+
+<div class="row m-3">
+    <div class="col-md-6">
+        <h4 class="mb-2">Dots &amp; Co.</h4>
+        <table class="table table-bordered advisor-odds-table">
+            <thead>
+                <tr>
+                    <th>ACCURACY</th>
+                    <th>ODDS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table_favorable %}
+                <tr>
+                    <td>{{ row.accuracy }}</td>
+                    <td>{{ row.odds }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <h4 class="mb-2">PixelHouse</h4>
+        <table class="table table-bordered advisor-odds-table">
+            <thead>
+                <tr>
+                    <th>ACCURACY</th>
+                    <th>ODDS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table_inverse %}
+                <tr>
+                    <td>{{ row.accuracy }}</td>
+                    <td>{{ row.odds }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{ next_button }}
+
+{{ endblock }}

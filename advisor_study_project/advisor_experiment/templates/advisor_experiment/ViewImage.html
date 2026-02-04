@@ -1,0 +1,58 @@
+{{ block title }}Trial {{ player.round_number }}{{ endblock }}
+{{ block content }}
+
+<style>
+    .pixel-grid {
+        display: grid;
+        grid-template-columns: repeat(20, 1fr);
+        gap: 1px;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        background-color: #333;
+    }
+    .pixel {
+        width: 100%;
+        padding-top: 100%;
+    }
+</style>
+
+<div class="text-center">
+    <h4>Which color is the majority?</h4>
+    <div id="grid-container" class="pixel-grid mb-3"></div>
+    <p id="timer-msg">Image will disappear in 5 seconds...</p>
+</div>
+
+<script>
+    let trueColor = "{{ true_color }}";
+    let totalPixels = 200;
+    let majorityCount = Math.floor(totalPixels * 0.55);
+    let minorityCount = totalPixels - majorityCount;
+    let redCount = (trueColor === "Red") ? majorityCount : minorityCount;
+    let blueCount = totalPixels - redCount;
+
+    let pixels = [];
+    for (let i = 0; i < redCount; i++) pixels.push("red");
+    for (let i = 0; i < blueCount; i++) pixels.push("blue");
+
+    // Shuffle
+    for (let i = pixels.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pixels[i], pixels[j]] = [pixels[j], pixels[i]];
+    }
+
+    let container = document.getElementById('grid-container');
+    pixels.forEach(color => {
+        let div = document.createElement('div');
+        div.className = 'pixel';
+        div.style.backgroundColor = (color === 'red') ? '#ff4136' : '#0074d9';
+        container.appendChild(div);
+    });
+
+    // Auto-submit after 5 seconds (matches timeout_seconds in pages.py)
+    setTimeout(function() {
+        document.getElementById("form").submit();
+    }, 5000);
+</script>
+
+{{ endblock }}

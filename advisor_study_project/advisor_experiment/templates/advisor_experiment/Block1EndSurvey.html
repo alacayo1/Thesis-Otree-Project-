@@ -1,0 +1,54 @@
+{{ block title }}End of Block 1{{ endblock }}
+{{ block content }}
+
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <p>Please answer the following about the advisors in Block 1 ({{ high_name }} and {{ low_name }}).</p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>{{ high_name }}</h5>
+        <p>Your confidence in {{ high_name }}'s accuracy (0 = not at all confident, 100 = completely confident):</p>
+        <input type="range" name="confidence_A" id="id_confidence_A" min="0" max="100" value="50" class="form-range" style="max-width: 300px;">
+        <span id="confidence_A_value">50</span>
+        {{ formfield_errors 'confidence_A' }}
+        <hr>
+        <p>How much would you pay (in cents, 0–20) for {{ high_name }}'s advice in a given round?</p>
+        <input type="range" name="pay_A" id="id_pay_A" min="0" max="20" value="10" class="form-range" style="max-width: 300px;">
+        <span id="pay_A_value">10</span>¢
+        {{ formfield_errors 'pay_A' }}
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>{{ low_name }}</h5>
+        <p>Your confidence in {{ low_name }}'s accuracy (0–100):</p>
+        <input type="range" name="confidence_B" id="id_confidence_B" min="0" max="100" value="50" class="form-range" style="max-width: 300px;">
+        <span id="confidence_B_value">50</span>
+        {{ formfield_errors 'confidence_B' }}
+        <hr>
+        <p>How much would you pay (in cents, 0–20) for {{ low_name }}'s advice in a given round?</p>
+        <input type="range" name="pay_B" id="id_pay_B" min="0" max="20" value="10" class="form-range" style="max-width: 300px;">
+        <span id="pay_B_value">10</span>¢
+        {{ formfield_errors 'pay_B' }}
+    </div>
+</div>
+
+<script>
+    function syncSlider(sliderId, valueId) {
+        var s = document.getElementById(sliderId);
+        var v = document.getElementById(valueId);
+        if (s && v) { s.oninput = function() { v.textContent = this.value; }; }
+    }
+    syncSlider('id_confidence_A', 'confidence_A_value');
+    syncSlider('id_pay_A', 'pay_A_value');
+    syncSlider('id_confidence_B', 'confidence_B_value');
+    syncSlider('id_pay_B', 'pay_B_value');
+</script>
+
+{{ next_button }}
+
+{{ endblock }}

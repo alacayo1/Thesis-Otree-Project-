@@ -1,0 +1,35 @@
+{{ block title }}Final Prediction{{ endblock }}
+{{ block content }}
+
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <p class="mb-2"><strong>Your original guess:</strong> {{ initial_prediction }} ({{ initial_confidence }}% confident)</p>
+        <p class="mb-0">{{ advisor_name }} guessed <strong>{{ advisor_advice }}</strong>.</p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body text-center">
+        <h4>What is your FINAL prediction?</h4>
+        {{ form.final_prediction }}
+        
+        <hr>
+        
+        <h4>Updated confidence:</h4>
+        <div class="mb-3">
+            <input type="range" name="final_confidence" id="id_final_confidence" min="50" max="100" value="75" class="form-range" style="max-width: 300px;">
+            <span id="final_confidence_value">75</span>%
+        </div>
+        {{ formfield_errors 'final_confidence' }}
+    </div>
+</div>
+
+<script>
+    document.getElementById('id_final_confidence').oninput = function() {
+        document.getElementById('final_confidence_value').textContent = this.value;
+    };
+</script>
+
+{{ next_button }}
+
+{{ endblock }}
