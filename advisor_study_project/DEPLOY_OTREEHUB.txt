@@ -1,0 +1,29 @@
+Why oTreeHub might still show the OLD version after you upload a new .otreezip
+=============================================================================
+
+• Building from the wrong folder (old copy of the project).
+• Uploading an old .otreezip (wrong file or wrong location).
+• Not triggering a new deploy – upload alone may not rebuild; you may need "Redeploy" or "Restart".
+
+CHECKLIST – do these in order:
+------------------------------
+
+1. BUILD FROM THE RIGHT FOLDER
+   cd /Users/alexanderlacayo/Thesis/advisor_study_project
+   (Make sure all edits are saved in Cursor.)
+
+2. REMOVE OLD .otreezip SO YOU DON'T UPLOAD THE WRONG ONE
+   Delete any existing .otreezip in this folder, then run:
+   otree zip
+   Check the new file's "Date Modified" is just now.
+
+3. UPLOAD THAT EXACT FILE to oTreeHub (the one from this folder).
+
+4. FORCE OTreeHUB TO USE THE NEW BUILD (most important)
+   After uploading, click "Redeploy" or "Deploy" again, or "Restart" / "Clear build cache" then deploy.
+   On many setups, uploading does not automatically rebuild – you must trigger redeploy/restart.
+
+5. CHECK IN INCOGNITO
+   Open the participant link in a private/incognito window.
+   Welcome page should show "Version 2025-01-v3" at the bottom.
+   If not, the server is still on the old build – repeat from step 2 and do step 4.

@@ -10,9 +10,8 @@
 <div class="card m-3">
     <div class="card-body">
         <h5>{{ high_name }}</h5>
-        <p>Your confidence in {{ high_name }}'s accuracy (0 = not at all confident, 100 = completely confident):</p>
-        <input type="range" name="confidence_A" id="id_confidence_A" min="0" max="100" value="50" class="form-range" style="max-width: 300px;">
-        <span id="confidence_A_value">50</span>
+        <p>How accurate do you believe {{ high_name }} was?</p>
+        {{ form.confidence_A }}
         {{ formfield_errors 'confidence_A' }}
         <hr>
         <p>How much would you pay (in cents, 0–20) for {{ high_name }}'s advice in a given round?</p>
@@ -25,9 +24,8 @@
 <div class="card m-3">
     <div class="card-body">
         <h5>{{ low_name }}</h5>
-        <p>Your confidence in {{ low_name }}'s accuracy (0–100):</p>
-        <input type="range" name="confidence_B" id="id_confidence_B" min="0" max="100" value="50" class="form-range" style="max-width: 300px;">
-        <span id="confidence_B_value">50</span>
+        <p>How accurate do you believe {{ low_name }} was?</p>
+        {{ form.confidence_B }}
         {{ formfield_errors 'confidence_B' }}
         <hr>
         <p>How much would you pay (in cents, 0–20) for {{ low_name }}'s advice in a given round?</p>
@@ -43,9 +41,7 @@
         var v = document.getElementById(valueId);
         if (s && v) { s.oninput = function() { v.textContent = this.value; }; }
     }
-    syncSlider('id_confidence_A', 'confidence_A_value');
     syncSlider('id_pay_A', 'pay_A_value');
-    syncSlider('id_confidence_B', 'confidence_B_value');
     syncSlider('id_pay_B', 'pay_B_value');
 </script>
 

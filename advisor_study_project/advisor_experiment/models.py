@@ -172,17 +172,18 @@ class Player(BasePlayer):
     round_payoff = models.CurrencyField()
     switch_cost_incurred = models.CurrencyField(initial=0)
 
-    # Block-end surveys (filled in round 20 and 40 only)
-    confidence_A = models.IntegerField(min=0, max=100, blank=True, null=True, label="Confidence in Team A (0-100)")
-    confidence_B = models.IntegerField(min=0, max=100, blank=True, null=True, label="Confidence in Team B (0-100)")
+    # Block-end surveys: perceived accuracy (80/60/40/20%) and WTP
+    ACCURACY_CHOICES = [[80, "80%"], [60, "60%"], [40, "40%"], [20, "20%"]]
+    confidence_A = models.IntegerField(choices=ACCURACY_CHOICES, blank=True, null=True, label="How accurate was advisor A?")
+    confidence_B = models.IntegerField(choices=ACCURACY_CHOICES, blank=True, null=True, label="How accurate was advisor B?")
     pay_A = models.IntegerField(min=0, max=20, blank=True, null=True, label="Would pay for Team A advice (cents, 0-20)")
     pay_B = models.IntegerField(min=0, max=20, blank=True, null=True, label="Would pay for Team B advice (cents, 0-20)")
-    confidence_C = models.IntegerField(min=0, max=100, blank=True, null=True, label="Confidence in Team C (0-100)")
-    confidence_D = models.IntegerField(min=0, max=100, blank=True, null=True, label="Confidence in Team D (0-100)")
+    confidence_C = models.IntegerField(choices=ACCURACY_CHOICES, blank=True, null=True, label="How accurate was advisor C?")
+    confidence_D = models.IntegerField(choices=ACCURACY_CHOICES, blank=True, null=True, label="How accurate was advisor D?")
     pay_C = models.IntegerField(min=0, max=20, blank=True, null=True, label="Would pay for Team C advice (cents, 0-20)")
     pay_D = models.IntegerField(min=0, max=20, blank=True, null=True, label="Would pay for Team D advice (cents, 0-20)")
-    confidence_E = models.IntegerField(min=0, max=100, blank=True, null=True, label="Confidence in Team E (0-100)")
-    confidence_F = models.IntegerField(min=0, max=100, blank=True, null=True, label="Confidence in Team F (0-100)")
+    confidence_E = models.IntegerField(choices=ACCURACY_CHOICES, blank=True, null=True, label="How accurate was advisor E?")
+    confidence_F = models.IntegerField(choices=ACCURACY_CHOICES, blank=True, null=True, label="How accurate was advisor F?")
     pay_E = models.IntegerField(min=0, max=20, blank=True, null=True, label="Would pay for Team E advice (cents, 0-20)")
     pay_F = models.IntegerField(min=0, max=20, blank=True, null=True, label="Would pay for Team F advice (cents, 0-20)")
 

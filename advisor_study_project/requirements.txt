@@ -4,7 +4,3 @@
 otree==6.0.7
 psycopg2>=2.8.4
 sentry-sdk>=0.7.9
-# For advisor_experiment/Gittins.py (plots)
-matplotlib>=3.5
-seaborn>=0.11
-numpy>=1.20
