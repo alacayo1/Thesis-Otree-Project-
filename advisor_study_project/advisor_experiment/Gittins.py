@@ -4,13 +4,12 @@ import matplotlib.pyplot as plt  # type: ignore[import-untyped]
 import seaborn as sns  # type: ignore[import-untyped]
 
 # --- CONFIGURATION & PRIORS ---
-# Defined from your problem statement
-PRIOR_A = {0.8: 0.30, 0.6: 0.30, 0.4: 0.20, 0.2: 0.20}
-PRIOR_B = {0.8: 0.20, 0.6: 0.20, 0.4: 0.30, 0.2: 0.30}
+# Accuracy levels 90%, 75%, 60%, 50% with same odds as before
+PRIOR_A = {0.9: 0.30, 0.75: 0.30, 0.6: 0.20, 0.5: 0.20}
+PRIOR_B = {0.9: 0.20, 0.75: 0.20, 0.6: 0.30, 0.5: 0.30}
 HORIZON = 20
 SIMULATION_RUNS = 5000
 
-# Increase recursion depth just in case, though 20 is shallow
 sys.setrecursionlimit(2000)
 
 # --- 1. THE MATH ENGINE (Dynamic Programming) ---
@@ -28,7 +27,7 @@ def update_prior(prior, success):
         new_prior[acc] = prob * likelihood
         total_prob += new_prior[acc]
     
-    # Normalize
+   
     for acc in new_prior:
         new_prior[acc] /= total_prob
     return new_prior
@@ -45,7 +44,7 @@ def solve_dp(sA, fA, sB, fB, priorA, priorB):
     if rounds_played >= HORIZON:
         return 0.0, 0.0
     
-    # Check Memoization
+
     state_key = (sA, fA, sB, fB)
     if state_key in memo:
         return memo[state_key]
@@ -76,7 +75,6 @@ def solve_dp(sA, fA, sB, fB, priorA, priorB):
     
     q_B = exp_B * (1 + future_B_succ) + (1 - exp_B) * (0 + future_B_fail)
     
-    # Store and Return
     memo[state_key] = (q_A, q_B)
     return q_A, q_B
 
@@ -91,7 +89,7 @@ def generate_heatmap_data():
     for w in range(grid_size):
         for l in range(grid_size):
             if w + l >= HORIZON:
-                diff_grid[l, w] = np.nan # Impossible state
+                diff_grid[l, w] = np.nan 
                 continue
             
             # Reconstruct A's prior for this specific grid cell

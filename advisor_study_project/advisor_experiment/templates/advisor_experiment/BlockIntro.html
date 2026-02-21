@@ -11,71 +11,56 @@
 
         {% if block_num == 1 %}
             <p>
-                In this block, you will receive advice from two advisors:
+                In this block, you will see 15 pixel images and state your probability that Red is the majority (before and after advisor advice). You will receive advice from two advisors:
                 {{ block_high_name }} and {{ block_low_name }}.
-            </p>
-        {% elif block_num == 2 %}
-            <p>
-                Block 1 Complete! In the next block, you will work with different advisors:
-               {{ block_high_name }} and {{ block_low_name }}.
             </p>
         {% else %}
             <p>
-                Block 2 Complete! In this final block, you will work with {{ block_high_name }} and {{ block_low_name }}.
+                Previous block complete! In this block you will work with {{ block_high_name }} and {{ block_low_name }}.
             </p>
         {% endif %}
 
-        <p>{{ block_high_name }} is <strong> more favorable </strong> than {{ block_low_name }}. Their accuracy levels and odds are:</p>
-        <div class="row mt-2">
-            <div class="col-md-6">
-                <h4 class="mb-2">{{ block_high_name }}</h4>
-                <table class="table table-bordered block-intro-odds-table">
-                    <thead>
-                        <tr>
-                            <th>ACCURACY</th>
-                            <th>ODDS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in table_favorable %}
-                        <tr>
-                            <td>{{ row.accuracy }}</td>
-                            <td>{{ row.odds }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="col-md-6">
-                <h4 class="mb-2">{{ block_low_name }}</h4>
-                <table class="table table-bordered block-intro-odds-table">
-                    <thead>
-                        <tr>
-                            <th>ACCURACY</th>
-                            <th>ODDS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in table_inverse %}
-                        <tr>
-                            <td>{{ row.accuracy }}</td>
-                            <td>{{ row.odds }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <p>Each advisor will have <strong>one accuracy level the whole block</strong>. This means if an advisor's true accuracy is 90%, it will remain at that level for the entire block.</p>
+        <p class="mb-2">As a reminder, Dots &amp; Co. is <strong>historically more favorable</strong> than PixelHouse. You have a better chance of getting a more accurate advisor from Dots &amp; Co
+            
+            <a class="btn btn-outline-secondary btn-sm" data-toggle="collapse" data-bs-toggle="collapse" href="#blockIntroOdds" role="button">show accuracy / # of advisors</a></p>
+        <div class="collapse mb-2" id="blockIntroOdds">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-1">Dots &amp; Co.</h5>
+                    <table class="table table-sm table-bordered block-intro-odds-table">
+                        <thead><tr><th>Accuracy of advisors</th><th># of advisors</th></tr></thead>
+                        <tbody>
+                            {% for row in table_favorable %}
+                            <tr><td>{{ row.accuracy }}</td><td>{{ row.count }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="mb-1">PixelHouse</h5>
+                    <table class="table table-sm table-bordered block-intro-odds-table">
+                        <thead><tr><th>Accuracy of advisors</th><th># of advisors</th></tr></thead>
+                        <tbody>
+                            {% for row in table_inverse %}
+                            <tr><td>{{ row.accuracy }}</td><td>{{ row.count }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-
+        
+        
+        <p>Your payment each round comes from two randomly chosen confidence statements (one from before and after the advice). <br>
+            **It is in your best interest to give your best guess of the probability that Red is the majority.**</p>
         {% if is_active %}
             <p class="alert alert-info">
-                <strong>Active Sampling:</strong> You will CHOOSE which advisor to consult.
-                {% if has_switching_cost %}Switching advisors may incur a cost.{% else %}There is no cost for switching advisors.{% endif %}
+                <strong>You will CHOOSE which advisor to consult. There is no cost for switching advisors.</strong>
             </p>
         {% else %}
             <p class="alert alert-info">
-                <strong>Passive Sampling:</strong> An advisor will be RANDOMLY assigned to you each round.
-                You cannot choose.
+                <strong>An advisor will be RANDOMLY assigned to you each round. You cannot choose.</strong>
             </p>
         {% endif %}
     </div>

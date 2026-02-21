@@ -3,16 +3,10 @@
 
 <div class="card bg-white border m-3">
     <div class="card-body text-center text-dark">
-        {% if is_passive %}
-            <h3>Passive Block: Advisor Assigned</h3>
-        {% else %}
-            <h3>Active Block: Advisor Selected</h3>
-        {% endif %}
-        
-        <hr>
-        
-        <h4>{{ advisor_name }} says:</h4>
-        <h1 class="display-3 text-dark">{{ advice }}</h1>
+        <h2 class="mb-3">{{ advisor_firm }}</h2>
+        <h3>{{ advisor_person }} says the true color is:</h3>
+        <h1 class="display-3 mb-3" style="{% if advice == 'Red' %}color: #c00;{% else %}color: #00f;{% endif %}">{{ advice }}</h1>
+        <p><small>As a reminder, Dots &amp; Co. is <strong>historically more favorable</strong> than PixelHouse.</small></p>
     </div>
 </div>
 

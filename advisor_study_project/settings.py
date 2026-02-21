@@ -3,9 +3,9 @@ from os import environ
 SESSION_CONFIGS = [
     dict(
         name='advisor_study',
-        display_name="Advisor Study (Active vs Passive)",
+        display_name="Pixel Study",
         app_sequence=['advisor_experiment'],
-        num_demo_participants=2,
+        num_demo_participants=2,  # only for "Demo" session in admin; real sessions use created participant count
     ),
 ]
 
@@ -18,7 +18,12 @@ SESSION_CONFIG_DEFAULTS = dict(
     real_world_currency_per_point=1.00, participation_fee=6.00, doc=""
 )
 
-PARTICIPANT_FIELDS = []
+# Include time tracking (advisor_experiment) in data monitoring / exports
+PARTICIPANT_FIELDS = [
+    'total_time_seconds',
+    'block_1_time_seconds', 'block_2_time_seconds', 'block_3_time_seconds',
+    'block_4_time_seconds', 'block_5_time_seconds', 'block_6_time_seconds',
+]
 SESSION_FIELDS = []
 
 # ISO-639 code

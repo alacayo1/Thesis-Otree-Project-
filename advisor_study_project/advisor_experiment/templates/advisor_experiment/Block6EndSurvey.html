@@ -1,9 +1,9 @@
-{{ block title }}End of Block 2 (Final Survey){{ endblock }}
+{{ block title }}End of Block 6 (Final Survey){{ endblock }}
 {{ block content }}
 
 <div class="card bg-light m-3">
     <div class="card-body">
-        <p>Please answer the following about the advisors in Block 2: {{ high_name }} and {{ low_name }}.</p>
+        <p>Please answer the following about the advisors in Block 6: {{ high_name }} and {{ low_name }}.</p>
         <p>Please provide your best guess.</p>
     </div>
 </div>
@@ -12,8 +12,8 @@
     <div class="card-body">
         <h5>{{ high_name }}</h5>
         <p>How accurate do you believe {{ high_name }} was?</p>
-        {{ form.confidence_2a }}
-        {{ formfield_errors 'confidence_2a' }}
+        {{ form.confidence_6a }}
+        {{ formfield_errors 'confidence_6a' }}
     </div>
 </div>
 
@@ -21,8 +21,8 @@
     <div class="card-body">
         <h5>{{ low_name }}</h5>
         <p>How accurate do you believe {{ low_name }} was?</p>
-        {{ form.confidence_2b }}
-        {{ formfield_errors 'confidence_2b' }}
+        {{ form.confidence_6b }}
+        {{ formfield_errors 'confidence_6b' }}
     </div>
 </div>
 

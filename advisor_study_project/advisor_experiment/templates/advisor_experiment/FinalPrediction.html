@@ -1,33 +1,59 @@
-{{ block title }}Final Prediction{{ endblock }}
+{{ block title }}Your probability (after advisor){{ endblock }}
 {{ block content }}
+
+<style>
+    .confidence-slider-wrap.confidence-more input[type="range"] { accent-color: #198754; }
+    .confidence-slider-wrap.confidence-less input[type="range"] { accent-color: #dc3545; }
+    .confidence-slider-wrap.confidence-same input[type="range"] { accent-color: #6c757d; }
+    #confidence-feedback { min-height: 1.5em; font-weight: 500; }
+    #confidence-feedback.confidence-more { color: #198754; }
+    #confidence-feedback.confidence-less { color: #dc3545; }
+    #confidence-feedback.confidence-same { color: #6c757d; }
+</style>
 
 <div class="card bg-light m-3">
     <div class="card-body">
-        <p class="mb-2"><strong>Your original guess:</strong> {{ initial_prediction }} ({{ initial_confidence }}% confident)</p>
-        <p class="mb-0">{{ advisor_name }} guessed <strong>{{ advisor_advice }}</strong>.</p>
+        <p class="mb-1">Your initial probability that <span style="color: #c00;">Red</span> is the majority: <strong>{{ initial_confidence }}%</strong>.</p>
+        <p class="mb-0">{{ advisor_name }} says the true color is: <strong>{{ advisor_advice }}</strong>.</p>
     </div>
 </div>
 
 <div class="card m-3">
     <div class="card-body text-center">
-        <h4>What is your FINAL prediction?</h4>
-        {{ form.final_prediction }}
-        
-        <hr>
-        
-        <h4>Updated confidence:</h4>
-        <div class="mb-3">
-            <input type="range" name="final_confidence" id="id_final_confidence" min="50" max="100" value="75" class="form-range" style="max-width: 300px;">
-            <span id="final_confidence_value">75</span>%
+        <h4>What is your updated probability that the majority color is <span style="color: #c00;">Red</span>?</h4>
+        <div class="confidence-slider-wrap mb-2" id="confidence-slider-wrap">
+            <input type="range" name="final_confidence" id="id_final_confidence" min="0" max="100" value="{{ initial_confidence }}" class="form-range" style="max-width: 300px;">
+            <span id="final_confidence_value">{{ initial_confidence }}</span>%
         </div>
+        <div id="final_likely_label" class="text-muted" style="min-height: 1.5em;"></div>
         {{ formfield_errors 'final_confidence' }}
     </div>
 </div>
 
 <script>
-    document.getElementById('id_final_confidence').oninput = function() {
-        document.getElementById('final_confidence_value').textContent = this.value;
-    };
+    (function() {
+        var slider = document.getElementById('id_final_confidence');
+        var valueSpan = document.getElementById('final_confidence_value');
+        var wrap = document.getElementById('confidence-slider-wrap');
+        var likelyLabel = document.getElementById('final_likely_label');
+        var initial = {{ initial_confidence }};
+
+        function update() {
+            var v = parseInt(slider.value, 10);
+            valueSpan.textContent = v;
+            likelyLabel.textContent = v + '% chance Red';
+            wrap.classList.remove('confidence-more', 'confidence-less', 'confidence-same');
+            if (v > initial) {
+                wrap.classList.add('confidence-more');
+            } else if (v < initial) {
+                wrap.classList.add('confidence-less');
+            } else {
+                wrap.classList.add('confidence-same');
+            }
+        }
+        slider.oninput = update;
+        update();
+    })();
 </script>
 
 {{ next_button }}

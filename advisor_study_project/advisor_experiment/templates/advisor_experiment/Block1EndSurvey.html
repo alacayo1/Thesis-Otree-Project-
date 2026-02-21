@@ -3,7 +3,8 @@
 
 <div class="card bg-light m-3">
     <div class="card-body">
-        <p>Please answer the following about the advisors in Block 1 ({{ high_name }} and {{ low_name }}).</p>
+        <p>Please answer the following about the advisors in Block 1: {{ high_name }} and {{ low_name }}.</p>
+        <p>Please provide your best guess.</p>
     </div>
 </div>
 
@@ -11,13 +12,8 @@
     <div class="card-body">
         <h5>{{ high_name }}</h5>
         <p>How accurate do you believe {{ high_name }} was?</p>
-        {{ form.confidence_A }}
-        {{ formfield_errors 'confidence_A' }}
-        <hr>
-        <p>How much would you pay (in cents, 0–20) for {{ high_name }}'s advice in a given round?</p>
-        <input type="range" name="pay_A" id="id_pay_A" min="0" max="20" value="10" class="form-range" style="max-width: 300px;">
-        <span id="pay_A_value">10</span>¢
-        {{ formfield_errors 'pay_A' }}
+        {{ form.confidence_1a }}
+        {{ formfield_errors 'confidence_1a' }}
     </div>
 </div>
 
@@ -25,25 +21,10 @@
     <div class="card-body">
         <h5>{{ low_name }}</h5>
         <p>How accurate do you believe {{ low_name }} was?</p>
-        {{ form.confidence_B }}
-        {{ formfield_errors 'confidence_B' }}
-        <hr>
-        <p>How much would you pay (in cents, 0–20) for {{ low_name }}'s advice in a given round?</p>
-        <input type="range" name="pay_B" id="id_pay_B" min="0" max="20" value="10" class="form-range" style="max-width: 300px;">
-        <span id="pay_B_value">10</span>¢
-        {{ formfield_errors 'pay_B' }}
+        {{ form.confidence_1b }}
+        {{ formfield_errors 'confidence_1b' }}
     </div>
 </div>
-
-<script>
-    function syncSlider(sliderId, valueId) {
-        var s = document.getElementById(sliderId);
-        var v = document.getElementById(valueId);
-        if (s && v) { s.oninput = function() { v.textContent = this.value; }; }
-    }
-    syncSlider('id_pay_A', 'pay_A_value');
-    syncSlider('id_pay_B', 'pay_B_value');
-</script>
 
 {{ next_button }}
 

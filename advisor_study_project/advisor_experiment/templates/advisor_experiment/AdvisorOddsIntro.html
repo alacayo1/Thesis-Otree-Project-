@@ -1,4 +1,4 @@
-{{ block title }}Advisor odds{{ endblock }}
+{{ block title }}How Advisors Work{{ endblock }}
 {{ block content }}
 
 <style>
@@ -8,11 +8,12 @@
 <div class="card bg-light m-3">
     <div class="card-body">
         <p>
-            Don't worry! You will have help! Every round, you can get advice from a member of one of two pixel
-            consulting groups: Dots &amp; Co. and PixelHouse.
-            <strong>Dots &amp; Co. has a better reputation for accuracy</strong>, but that might not be true for you!
-            Advisors from each company have different accuracy rates. The accuracy levels and the odds of getting
-            each level are given in the tables below.
+            Don't worry! You will have help! <strong> Every block, you will be assigned a new advisor from each of the two pixel
+            consulting groups</strong>: Dots &amp; Co. and PixelHouse. You can use these advisors to help you make your predictions.
+        </p>
+        <strong>Dots &amp; Co. has a better reputation for providing accurate advisors</strong>, but neither team is perfect!
+        Advisors from each company have different accuracy rates. The accuracy levels and the number of advisors
+        at each level are given in the tables below. <strong>Figuring out how accurate your assigned advisors are is important to succeed.</strong>
         </p>
     </div>
 </div>
@@ -23,15 +24,15 @@
         <table class="table table-bordered advisor-odds-table">
             <thead>
                 <tr>
-                    <th>ACCURACY</th>
-                    <th>ODDS</th>
+                    <th>Accuracy of advisors</th>
+                    <th># of advisors</th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in table_favorable %}
                 <tr>
                     <td>{{ row.accuracy }}</td>
-                    <td>{{ row.odds }}</td>
+                    <td>{{ row.count }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -42,22 +43,22 @@
         <table class="table table-bordered advisor-odds-table">
             <thead>
                 <tr>
-                    <th>ACCURACY</th>
-                    <th>ODDS</th>
+                    <th>Accuracy of advisors</th>
+                    <th># of advisors</th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in table_inverse %}
                 <tr>
                     <td>{{ row.accuracy }}</td>
-                    <td>{{ row.odds }}</td>
+                    <td>{{ row.count }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-
+<p>The table shows how many advisors of each accuracy level each company has.</p>
 {{ next_button }}
 
 {{ endblock }}

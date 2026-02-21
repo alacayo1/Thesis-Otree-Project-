@@ -4,29 +4,30 @@
 <style>
     .pixel-grid {
         display: grid;
-        grid-template-columns: repeat(20, 1fr);
+        grid-template-columns: repeat({{ grid_width }}, 1fr);
+        grid-template-rows: repeat({{ grid_height }}, 1fr);
         gap: 1px;
-        width: 100%;
-        max-width: 500px;
+        width: 500px;
+        height: 250px;
         margin: 0 auto;
         background-color: #333;
     }
     .pixel {
-        width: 100%;
-        padding-top: 100%;
+        min-width: 0;
+        min-height: 0;
     }
 </style>
 
 <div class="text-center">
     <h4>Which color is the majority?</h4>
     <div id="grid-container" class="pixel-grid mb-3"></div>
-    <p id="timer-msg">Image will disappear in 5 seconds...</p>
+    <p id="timer-msg">Image will disappear in 2 seconds...</p>
 </div>
 
 <script>
     let trueColor = "{{ true_color }}";
-    let totalPixels = 200;
-    let majorityCount = Math.floor(totalPixels * 0.55);
+    let totalPixels = {{ total_pixels }};
+    let majorityCount = Math.floor(totalPixels * 0.51);
     let minorityCount = totalPixels - majorityCount;
     let redCount = (trueColor === "Red") ? majorityCount : minorityCount;
     let blueCount = totalPixels - redCount;
@@ -49,10 +50,10 @@
         container.appendChild(div);
     });
 
-    // Auto-submit after 5 seconds (matches timeout_seconds in pages.py)
+    // Auto-submit after 2 seconds (matches timeout_seconds in pages.py)
     setTimeout(function() {
         document.getElementById("form").submit();
-    }, 5000);
+    }, 2000);
 </script>
 
 {{ endblock }}

@@ -1,94 +1,160 @@
 from otree.api import Currency as cu, currency_range  # type: ignore[import-untyped]
 from ._builtin import Page, WaitPage  # type: ignore[import-untyped]
-from .models import Constants
+from .models import Constants, Player
 import random
+import time
+import math
 
-class Welcome(Page):
+
+def _advice_for_round(participant, round_number):
+    return (
+        participant.vars.get(f'advice_high_r{round_number}'),
+        participant.vars.get(f'advice_low_r{round_number}'),
+    )
+
+
+class TimeTrackingMixin:
+    """Records time in total_time_seconds and current_block_time_seconds."""
+    def vars_for_template(self):
+        self.participant.vars['_page_start_time'] = time.time()
+        return {}
+
+    def before_next_page(self):
+        start = self.participant.vars.get('_page_start_time', time.time())
+        elapsed = max(0, time.time() - start)
+        total = round(self.participant.vars.get('total_time_seconds', 0) + elapsed, 2)
+        self.participant.vars['total_time_seconds'] = total
+        rpb = Constants.rounds_per_block
+        block_num = min((self.round_number - 1) // rpb + 1, Constants.num_blocks)
+        block_key = f'block_{block_num}_time_seconds'
+        self.participant.vars[block_key] = round(self.participant.vars.get(block_key, 0) + elapsed, 2)
+        self.player.total_time_seconds = round(self.participant.vars.get('total_time_seconds'), 2)
+        self.player.current_block_time_seconds = round(self.participant.vars.get(block_key, 0), 2)
+        super().before_next_page()
+
+
+class Welcome(TimeTrackingMixin, Page):
     def is_displayed(self):
         return self.round_number == 1
 
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        return d
 
-class AdvisorOddsIntro(Page):
+
+class AdvisorOddsIntro(TimeTrackingMixin, Page):
     """Second welcome page: 'Don't worry...' text and two ACCURACY / ODDS tables side by side."""
     def is_displayed(self):
         return self.round_number == 1
 
     def vars_for_template(self):
-        # Favorable (e.g. Dots & Co.): 30%, 30%, 20%, 20% for 80, 60, 40, 20
-        # Other (e.g. PixelHouse): 20%, 20%, 30%, 30%
-        acc_pct = [80, 60, 40, 20]
-        favorable_odds = [30, 30, 20, 20]
-        inverse_odds = [20, 20, 30, 30]
+        d = super().vars_for_template()
+        acc_pct = [90, 75, 60, 50]
+        favorable_counts = [30, 30, 20, 20]   # Dots & Co. total 100
+        inverse_counts = [20, 20, 30, 30]     # PixelHouse total 100
         table_favorable = [
-            {'accuracy': f'{a}% accurate', 'odds': f'{o}% of the time'}
-            for a, o in zip(acc_pct, favorable_odds)
+            {'accuracy': f'{a}% accurate', 'count': c}
+            for a, c in zip(acc_pct, favorable_counts)
         ]
         table_inverse = [
-            {'accuracy': f'{a}% accurate', 'odds': f'{o}% of the time'}
-            for a, o in zip(acc_pct, inverse_odds)
+            {'accuracy': f'{a}% accurate', 'count': c}
+            for a, c in zip(acc_pct, inverse_counts)
         ]
-        return {
+        d.update({
             'table_favorable': table_favorable,
             'table_inverse': table_inverse,
-        }
+        })
+        return d
 
 
-class BlockIntro(Page):
+class OddsComprehensionCheck(TimeTrackingMixin, Page):
+    """After AdvisorOddsIntro: force correct answers for 90% odds (Dots 30%, Pixel 20%)."""
+    form_model = 'player'
+    form_fields = ['odds_dots_90', 'odds_pixel_90']
+
     def is_displayed(self):
-        # Show at start of each block (rounds 1, 1+RPB, 1+2*RPB)
-        rpb = Constants.rounds_per_block
-        return self.round_number in (1, 1 + rpb, 1 + 2 * rpb)
+        return self.round_number == 1
 
     def vars_for_template(self):
-        rpb = Constants.rounds_per_block
-        if self.round_number <= rpb:
-            block_num = 1
-            block_high_name = self.participant.vars.get('advisor_name_A', 'Team A')
-            block_low_name = self.participant.vars.get('advisor_name_B', 'Team B')
-        elif self.round_number <= 2 * rpb:
-            block_num = 2
-            block_high_name = self.participant.vars.get('advisor_name_C', 'Team C')
-            block_low_name = self.participant.vars.get('advisor_name_D', 'Team D')
-        else:
-            block_num = 3
-            block_high_name = self.participant.vars.get('advisor_name_E', 'Team E')
-            block_low_name = self.participant.vars.get('advisor_name_F', 'Team F')
-        # Same ACCURACY / ODDS table data as AdvisorOddsIntro (favorable vs inverse)
-        acc_pct = [80, 60, 40, 20]
+        d = super().vars_for_template()
+        acc_pct = [90, 75, 60, 50]
         table_favorable = [
-            {'accuracy': f'{a}% accurate', 'odds': f'{o}% of the time'}
-            for a, o in zip(acc_pct, [30, 30, 20, 20])
+            {'accuracy': f'{a}% accurate', 'count': c}
+            for a, c in zip(acc_pct, [30, 30, 20, 20])
         ]
         table_inverse = [
-            {'accuracy': f'{a}% accurate', 'odds': f'{o}% of the time'}
-            for a, o in zip(acc_pct, [20, 20, 30, 30])
+            {'accuracy': f'{a}% accurate', 'count': c}
+            for a, c in zip(acc_pct, [20, 20, 30, 30])
         ]
-        return {
+        d.update({
+            'table_favorable': table_favorable,
+            'table_inverse': table_inverse,
+        })
+        return d
+
+    def error_message(self, values):
+        if values.get('odds_dots_90') != '30' or values.get('odds_pixel_90') != '20':
+            return (
+                'One or both answers are incorrect. Use the table above: '
+                'Dots & Co. has 30 out of 100 advisors who are 90% accurate (30%). '
+                'PixelHouse has 20 out of 100 advisors who are 90% accurate (20%).'
+            )
+
+
+class BlockIntro(TimeTrackingMixin, Page):
+    def is_displayed(self):
+        rpb = Constants.rounds_per_block
+        return self.round_number in (1, 1 + rpb, 1 + 2*rpb, 1 + 3*rpb, 1 + 4*rpb, 1 + 5*rpb)
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        rpb = Constants.rounds_per_block
+        rn = self.round_number
+        block_num = min((rn - 1) // rpb + 1, Constants.num_blocks)
+        high_id = ['1a', '2a', '3a', '4a', '5a', '6a'][block_num - 1]
+        low_id = ['1b', '2b', '3b', '4b', '5b', '6b'][block_num - 1]
+        block_high_name = str(self.participant.vars.get(f'advisor_name_{high_id}', f'Team {high_id}'))
+        block_low_name = str(self.participant.vars.get(f'advisor_name_{low_id}', f'Team {low_id}'))
+        acc_pct = [90, 75, 60, 50]
+        table_favorable = [
+            {'accuracy': f'{a}% accurate', 'count': c}
+            for a, c in zip(acc_pct, [30, 30, 20, 20])
+        ]
+        table_inverse = [
+            {'accuracy': f'{a}% accurate', 'count': c}
+            for a, c in zip(acc_pct, [20, 20, 30, 30])
+        ]
+        block_type = (getattr(self.player, 'block_type', None) or '').strip()
+        d.update({
             'block_num': block_num,
             'block_high_name': block_high_name,
             'block_low_name': block_low_name,
             'table_favorable': table_favorable,
             'table_inverse': table_inverse,
-            'is_active': self.player.block_type == 'Active',
-            'has_switching_cost': self.participant.vars.get('has_switching_cost', False)
-        }
+            'is_active': block_type == 'Active',
+        })
+        return d
 
-class ViewImage(Page):
-    timeout_seconds = 5 
-    
+class ViewImage(TimeTrackingMixin, Page):
+    timeout_seconds = 2
+
     def vars_for_template(self):
-        # Pass data to JS to generate the grid
-        return {
+        d = super().vars_for_template()
+        d.update({
             'true_color': self.player.true_color,
-            'majority_threshold': Constants.majority_threshold
-        }
+            'majority_threshold': Constants.majority_threshold,
+            'grid_width': Constants.grid_width,
+            'grid_height': Constants.grid_height,
+            'total_pixels': Constants.total_pixels,
+        })
+        return d
 
-class InitialPrediction(Page):
+class InitialPrediction(TimeTrackingMixin, Page):
     form_model = 'player'
-    form_fields = ['initial_prediction', 'initial_confidence']
-    preserve_unsubmitted_inputs = True  # keep slider values if validation fails
+    form_fields = ['initial_confidence']
+    preserve_unsubmitted_inputs = True
 
-class AdvisorSelection(Page):
+class AdvisorSelection(TimeTrackingMixin, Page):
     form_model = 'player'
     form_fields = ['selected_advisor_type']
 
@@ -96,125 +162,255 @@ class AdvisorSelection(Page):
         return self.player.block_type == 'Active'
 
     def vars_for_template(self):
-        has_cost = self.participant.vars.get('has_switching_cost', False)
-        if not has_cost:
-            cost_text = "No switching cost."
-        elif (self.round_number - 1) % Constants.rounds_per_block == 0:
-            cost_text = "No switching cost (First trial of this block)."
-        else:
-            cost_text = f"Switching advisors costs {Constants.switching_cost}"
-        return {
-            'high_name': self.player.advisor_high_name,
-            'low_name': self.player.advisor_low_name,
-            'cost_text': cost_text
-        }
+        d = super().vars_for_template()
+        acc_pct = [90, 75, 60, 50]
+        table_favorable = [
+            {'accuracy': f'{a}% accurate', 'count': c}
+            for a, c in zip(acc_pct, [30, 30, 20, 20])
+        ]
+        table_inverse = [
+            {'accuracy': f'{a}% accurate', 'count': c}
+            for a, c in zip(acc_pct, [20, 20, 30, 30])
+        ]
+        high_name = self.player.advisor_high_name
+        low_name = self.player.advisor_low_name
+        high_firm = 'Dots & Co.' if ' (Dots & Co.)' in high_name else 'PixelHouse'
+        high_person = high_name.replace(' (Dots & Co.)', '').replace(' (PixelHouse)', '')
+        low_firm = 'Dots & Co.' if ' (Dots & Co.)' in low_name else 'PixelHouse'
+        low_person = low_name.replace(' (Dots & Co.)', '').replace(' (PixelHouse)', '')
+        d.update({
+            'high_name': high_name,
+            'low_name': low_name,
+            'high_firm': high_firm,
+            'high_person': high_person,
+            'low_firm': low_firm,
+            'low_person': low_person,
+            'table_favorable': table_favorable,
+            'table_inverse': table_inverse,
+        })
+        return d
 
-class AdvisorDisplay(Page):
-    # This page just shows the advice (passive or active result)
+class AdvisorDisplay(TimeTrackingMixin, Page):
     def is_displayed(self):
         return True
-        
+
     def vars_for_template(self):
-        # If Passive, system randomly selects
+        d = super().vars_for_template()
+        advice_high, advice_low = _advice_for_round(self.participant, self.round_number)
         if self.player.block_type == 'Passive':
-            # Randomly pick High or Low for display
             self.player.selected_advisor_type = random.choice(['High', 'Low'])
-            
-        # Retrieve the specific advice based on selection
         if self.player.selected_advisor_type == 'High':
             advisor_name = self.player.advisor_high_name
-            advice = self.player.advice_high
+            advice = advice_high
         else:
             advisor_name = self.player.advisor_low_name
-            advice = self.player.advice_low
-            
-        return {
+            advice = advice_low
+        if ' (Dots & Co.)' in advisor_name:
+            advisor_firm = 'Dots & Co.'
+            advisor_person = advisor_name.replace(' (Dots & Co.)', '')
+        else:
+            advisor_firm = 'PixelHouse'
+            advisor_person = advisor_name.replace(' (PixelHouse)', '')
+        d.update({
             'advisor_name': advisor_name,
+            'advisor_firm': advisor_firm,
+            'advisor_person': advisor_person,
             'advice': advice,
             'is_passive': self.player.block_type == 'Passive'
-        }
+        })
+        return d
 
-class FinalPrediction(Page):
+    def before_next_page(self):
+        super().before_next_page()
+        advice_high, advice_low = _advice_for_round(self.participant, self.round_number)
+        self.player.advice_shown = advice_high if self.player.selected_advisor_type == 'High' else advice_low
+        self.player.selected_advisor_firm = 'Dots & Co.' if self.player.selected_advisor_type == 'High' else 'PixelHouse'
+
+class FinalPrediction(TimeTrackingMixin, Page):
     form_model = 'player'
-    form_fields = ['final_prediction', 'final_confidence']
-    preserve_unsubmitted_inputs = True  # keep slider values if validation fails
+    form_fields = ['final_confidence']
+    preserve_unsubmitted_inputs = True
 
     def vars_for_template(self):
+        d = super().vars_for_template()
+        advice_high, advice_low = _advice_for_round(self.participant, self.round_number)
         if self.player.selected_advisor_type == 'High':
             advisor_name = self.player.advisor_high_name
-            advisor_advice = self.player.advice_high
+            advisor_advice = advice_high
         else:
             advisor_name = self.player.advisor_low_name
-            advisor_advice = self.player.advice_low
-        return {
-            'initial_prediction': self.player.initial_prediction,
+            advisor_advice = advice_low
+        d.update({
             'initial_confidence': self.player.initial_confidence,
             'advisor_name': advisor_name,
             'advisor_advice': advisor_advice,
-        }
-    
-    def before_next_page(self):
-        self.player.calculate_payoff()
+        })
+        return d
 
-class Feedback(Page):
+    def before_next_page(self):
+        super().before_next_page()
+
+class Feedback(TimeTrackingMixin, Page):
     def vars_for_template(self):
+        d = super().vars_for_template()
+        advice_high, advice_low = _advice_for_round(self.participant, self.round_number)
         if self.player.selected_advisor_type == 'High':
             advisor_name = self.player.advisor_high_name
-            advice_picked = self.player.advice_high
+            advice_picked = advice_high
         else:
             advisor_name = self.player.advisor_low_name
-            advice_picked = self.player.advice_low
-        total_payoff = self.participant.payoff_plus_participation_fee()
-        return {
-            'correct_answer': self.player.true_color,
+            advice_picked = advice_low
+        d.update({
+            'true_color': self.player.true_color,
             'advisor_name': advisor_name,
             'advice_picked': advice_picked,
-            'total_payoff': total_payoff
-        }
+        })
+        return d
 
 
-class Block1EndSurvey(Page):
+class Block1EndSurvey(TimeTrackingMixin, Page):
     form_model = 'player'
-    form_fields = ['confidence_A', 'confidence_B', 'pay_A', 'pay_B']
+    form_fields = ['confidence_1a', 'confidence_1b']
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.rounds_per_block  # end of block 1
+        return self.round_number == Constants.rounds_per_block
+
+    def before_next_page(self):
+        super().before_next_page()
+        Player.run_block_payoff(self.player, 1)
 
     def vars_for_template(self):
+        d = super().vars_for_template()
         last = self.player.in_round(Constants.rounds_per_block)
-        return {'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name}
+        d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
+        return d
 
 
-class Block2EndSurvey(Page):
+class Block2EndSurvey(TimeTrackingMixin, Page):
     form_model = 'player'
-    form_fields = ['confidence_C', 'confidence_D', 'pay_C', 'pay_D']
+    form_fields = ['confidence_2a', 'confidence_2b']
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.rounds_per_block * 2  # end of block 2
+        return self.round_number == Constants.rounds_per_block * 2
+
+    def before_next_page(self):
+        super().before_next_page()
+        Player.run_block_payoff(self.player, 2)
 
     def vars_for_template(self):
+        d = super().vars_for_template()
         last = self.player.in_round(Constants.rounds_per_block * 2)
-        return {'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name}
+        d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
+        return d
 
 
-class Block3EndSurvey(Page):
+class Block3EndSurvey(TimeTrackingMixin, Page):
     form_model = 'player'
-    form_fields = ['confidence_E', 'confidence_F', 'pay_E', 'pay_F']
+    form_fields = ['confidence_3a', 'confidence_3b']
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.num_rounds  # end of block 3
+        return self.round_number == Constants.rounds_per_block * 3
+
+    def before_next_page(self):
+        super().before_next_page()
+        Player.run_block_payoff(self.player, 3)
 
     def vars_for_template(self):
-        last = self.player.in_round(Constants.num_rounds)
-        return {'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name}
+        d = super().vars_for_template()
+        last = self.player.in_round(Constants.rounds_per_block * 3)
+        d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
+        return d
 
+
+class Block4EndSurvey(TimeTrackingMixin, Page):
+    form_model = 'player'
+    form_fields = ['confidence_4a', 'confidence_4b']
+    preserve_unsubmitted_inputs = True
+
+    def is_displayed(self):
+        return self.round_number == Constants.rounds_per_block * 4
+
+    def before_next_page(self):
+        super().before_next_page()
+        Player.run_block_payoff(self.player, 4)
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        last = self.player.in_round(Constants.rounds_per_block * 4)
+        d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
+        return d
+
+
+class Block5EndSurvey(TimeTrackingMixin, Page):
+    form_model = 'player'
+    form_fields = ['confidence_5a', 'confidence_5b']
+    preserve_unsubmitted_inputs = True
+
+    def is_displayed(self):
+        return self.round_number == Constants.rounds_per_block * 5
+
+    def before_next_page(self):
+        super().before_next_page()
+        Player.run_block_payoff(self.player, 5)
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        last = self.player.in_round(Constants.rounds_per_block * 5)
+        d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
+        return d
+
+
+class Block6EndSurvey(TimeTrackingMixin, Page):
+    form_model = 'player'
+    form_fields = ['confidence_6a', 'confidence_6b']
+    preserve_unsubmitted_inputs = True
+
+    def is_displayed(self):
+        return self.round_number == Constants.num_rounds
+
+    def before_next_page(self):
+        super().before_next_page()
+        Player.run_block_payoff(self.player, 6)
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        last = self.player.in_round(Constants.num_rounds)
+        d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
+        return d
+
+
+def _round_to_nearest_third(x):
+    """Round to nearest 1/3 so result has decimal part .00, .33, or .66."""
+    return round(round(float(x) * 3) / 3, 2)
+
+
+class Earnings(TimeTrackingMixin, Page):
+    """Final page: show total earnings (participation + confidence lotteries), rounded to nearest 1/3 (.00, .33, .66)."""
+    def is_displayed(self):
+        return self.round_number == Constants.num_rounds
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        participation = cu(self.session.config.get('participation_fee', 6))
+        lottery_earned_raw = cu(round(float(self.participant.payoff or 0), 2))
+        total_raw = participation + lottery_earned_raw
+        total = cu(_round_to_nearest_third(total_raw))
+        lottery_earned = total - participation  # implied lottery part so display sums to total
+        self.player.final_total_pay = total
+        d.update({
+            'lottery_earned': lottery_earned,
+            'participation_fee': participation,
+            'total_earnings': total,
+        })
+        return d
 
 page_sequence = [
     Welcome,
     AdvisorOddsIntro,
+    OddsComprehensionCheck,
     BlockIntro,
     ViewImage,
     InitialPrediction,
@@ -224,5 +420,9 @@ page_sequence = [
     Feedback,
     Block1EndSurvey,
     Block2EndSurvey,
-    Block3EndSurvey
+    Block3EndSurvey,
+    Block4EndSurvey,
+    Block5EndSurvey,
+    Block6EndSurvey,
+    Earnings
 ]
