@@ -11,7 +11,7 @@
 
         {% if block_num == 1 %}
             <p>
-                In this block, you will see 15 pixel images and state your probability that Red is the majority (before and after advisor advice). You will receive advice from two advisors:
+                In this block, you will see 20 pixel images and state your belief (0-100) that Red is the majority (before and after advisor advice). You will receive advice from two advisors:
                 {{ block_high_name }} and {{ block_low_name }}.
             </p>
         {% else %}
@@ -20,7 +20,7 @@
             </p>
         {% endif %}
 
-        <p>Each advisor will have <strong>one accuracy level the whole block</strong>. This means if an advisor's true accuracy is 90%, it will remain at that level for the entire block.</p>
+        <p>**IMPORTANT**:You will have ONE ADVISOR from each company the WHOLE BLOCK. This means if an advisor's true accuracy is 90%, it will remain at that level for the entire block.</p> 
         <p class="mb-2">As a reminder, Dots &amp; Co. is <strong>historically more favorable</strong> than PixelHouse. You have a better chance of getting a more accurate advisor from Dots &amp; Co
             
             <a class="btn btn-outline-secondary btn-sm" data-toggle="collapse" data-bs-toggle="collapse" href="#blockIntroOdds" role="button">show accuracy / # of advisors</a></p>
@@ -53,7 +53,9 @@
         
         
         <p>Your payment each round comes from two randomly chosen confidence statements (one from before and after the advice). <br>
-            **It is in your best interest to give your best guess of the probability that Red is the majority.**</p>
+            **It is in your best interest to give your honest guess of the odds
+            there are more Red than Blue pixels.**
+        </p>
         {% if is_active %}
             <p class="alert alert-info">
                 <strong>You will CHOOSE which advisor to consult. There is no cost for switching advisors.</strong>

@@ -14,7 +14,7 @@ Advisor Study: Active vs Passive Sampling.
 6 Blocks: 3 Active and 3 Passive per participant (counterbalanced). No switching costs.
 """
 
-ROUNDS_PER_BLOCK = 20
+ROUNDS_PER_BLOCK = 20  # 18 participant rounds + 2 block-end rounds (one per advisor)
 
 # Accuracy levels: 90%, 75%, 60%, 50% (display and sampling)
 ACCURACY_LEVELS = [0.90, 0.75, 0.60, 0.50]
@@ -76,7 +76,13 @@ class Subsession(BaseSubsession):
         for p in self.get_players():
             rn = self.round_number
             current_block_idx = min((rn - 1) // rpb, Constants.num_blocks - 1)
+            block_num = current_block_idx + 1
             p.block_type = p.participant.vars['block_order'][current_block_idx]
+            # Passive blocks: pre-assign 9 High + 9 Low for rounds 1–18 so exposure is symmetrical
+            if (rn - 1) % rpb == 0 and p.block_type == 'Passive':
+                p.participant.vars[f'block_{block_num}_advisor_sequence'] = random.sample(
+                    ['High'] * 9 + ['Low'] * 9, 18
+                )
             p.true_color = random.choice(['Red', 'Blue'])
             high_id = HIGH_IDS[current_block_idx]
             low_id = LOW_IDS[current_block_idx]
@@ -90,6 +96,9 @@ class Subsession(BaseSubsession):
             p.participant.vars[f'advice_low_r{rn}'] = a_low
             p.accuracy_high_this_block = acc_high
             p.accuracy_low_this_block = acc_low
+            # Block-end rounds 19 and 20 (within-block index 18 and 19): always passive, one advisor each
+            within_block = (rn - 1) % rpb
+            p.block_end_round = (1 if within_block == 18 else (2 if within_block == 19 else 0))
 
 class Group(BaseGroup):
     pass
@@ -112,6 +121,8 @@ class Player(BasePlayer):
     current_block_time_seconds = models.FloatField(blank=True, null=True)
     final_total_pay = models.CurrencyField(blank=True, null=True)  # participation + lottery (set on last round)
 
+    # 0 = normal round, 1 = block end round 1 (see High advisor), 2 = block end round 2 (see Low advisor)
+    block_end_round = models.IntegerField(initial=0)
     # Internal (for logic only); labels from selected_advisor_type_choices below
     selected_advisor_type = models.StringField(
         choices=['High', 'Low'], widget=widgets.RadioSelect
@@ -128,12 +139,12 @@ class Player(BasePlayer):
         ]
     # Comprehension and block surveys (required for forms)
     odds_dots_90 = models.StringField(
-        choices=[(str(i), f'{i}%') for i in range(10, 101, 10)],
-        label="Dots & Co.: percentage of advisors who are 90% accurate",
+        choices=[(str(i), str(i)) for i in range(10, 101, 10)],
+        label="Dots & Co.: how many out of 100 advisors are 90% accurate",
     )
     odds_pixel_90 = models.StringField(
-        choices=[(str(i), f'{i}%') for i in range(10, 101, 10)],
-        label="PixelHouse: percentage of advisors who are 90% accurate",
+        choices=[(str(i), str(i)) for i in range(10, 101, 10)],
+        label="PixelHouse: how many out of 100 advisors are 90% accurate",
     )
     # Block end surveys: must select an option (required), but any choice is accepted
     confidence_1a = models.IntegerField(choices=ACCURACY_CHOICES)

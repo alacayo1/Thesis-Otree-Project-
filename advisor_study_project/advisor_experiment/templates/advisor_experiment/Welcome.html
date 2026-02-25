@@ -1,3 +1,4 @@
+{% load static %}
 {{ block title }}Welcome{{ endblock }}
 {{ block content }}
 
@@ -9,20 +10,27 @@
     <div class="card-body">
         <h3>Welcome to the Pixel Prediction Study!</h3>
         <p>
-            In this study, you will see grids with two colors of pixels: red and blue.
-            Each image will be 51% one color and 49% the other.
+            In this study, you will see grids with two pixel colors: red and blue.
+            Each image will be 51% one color and 49% the other, chosen randomly.
         </p>
+
+        <div class="text-center mb-3">
+            <img src="{% static 'advisor_experiment/example_grid.png' %}" alt="Example pixel grid" class="img-fluid" style="max-width: 260px;">
+        </div>
 
         <div class="card welcome-blue-block mb-3">
             <div class="card-body">
-                <p>Your task is to state your confidence that the majority color is Red.
-                You will do this twice: once before consulting an advisor's opinion and once after.</p>
+                <p>Your task is to state how confident you are, on a scale of 0 to 100, that there are MORE RED pixels. <br>
+                    You will state your confidence that the majority color is Red twice per round: once before consulting an advisor's opinion and once after. <br>
+                    <br>
+                    You will be asked to complete 20 rounds of this task per block. There are 8 blocks in total.
+                </p>
             </div>
         </div>
 
         <p>
             The task structure will flow as follows:
-            You will see a pixel grid, then be asked to adjust the slider (shown below) to state your initial confidence
+            You will see the pixel grid, then be asked to adjust the slider (shown below) to state your initial confidence
             that the majority color is red.
         </p>
         <div class="card mb-3">
@@ -33,58 +41,9 @@
             </div>
         </div>
         <p>
-            You will then get a piece of advice about the color, and be asked to re-evaluate your confidence with a second slider.
+            You will then get a piece of advice about the color, and be asked to re-evaluate your confidence with a second slider. 
+            To see how advisors work, go to the next page!
         </p>
-
-        <h4 class="mt-3 mb-2">Bonus Payment</h4>
-        <p>
-            You will be <strong>paid a base of $5</strong> plus the chance to earn <strong>an $8 bonus</strong> based on your performance.
-            Payment will be determined by a lottery based on your confidence "r".
-            The lottery is structured as follows:
-        </p>
-        <table class="table table-bordered w-auto mb-3">
-            <thead>
-                <tr><th>If actual majority is…</th><th>Your win probability</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>Red</td><td>p = 1 − (1−r)²</td></tr>
-                <tr><td>Blue</td><td>p = 1 − r²</td></tr>
-            </tbody>
-        </table>
-
-        <p>
-            Say you think there is an 80% chance the majority is red. r = 0.8.<br>
-            If Red is the majority, the odds you will get paid p = 1 − (1−r)² = 1 − (1−0.8)² = 96% chance.<br>
-            If it is not the majority, the odds you will get paid p = 1 − r² = 1 − 0.8² = 36% chance.<br>
-            <strong>So, if you really believe it is 80% likely to be red,</strong> your expected payout
-            is .8×96% + .2×36% = 84% chance of getting the bonus.
-        </p>
-        <p>
-            <strong>This payoff scheme means it is always in your best interest to give your best guess of
-            the probability that Red is the majority.</strong>
-        </p>
-
-        <div class="card welcome-blue-block mb-3">
-            <div class="card-body">
-                <p>You will be paid based on one initial guess and one final guess, chosen at random, from EACH block.
-                This means there are 12 total random responses that will factor into your bonus payment, with a maximum of $8.</p>
-            </div>
-        </div>
-
-        <p>
-            You can play with the slider below to better understand how the payoff scheme works.<br>
-            The percentage values of winning the bonus for if Red or Blue are the majority are given underneath.
-        </p>
-        <div class="card welcome-blue-block-bottom mb-0">
-            <div class="card-body text-center py-3">
-                <label class="form-label mb-2">Your stated probability that Red is the majority: <strong><span id="welcome_practice_r">50</span>%</strong></label>
-                <input type="range" id="welcome_practice_slider" min="0" max="100" value="50" class="form-range mb-3" style="max-width: 300px;">
-                <div class="row text-start justify-content-center g-2">
-                    <div class="col-auto"><span style="color: #c00;">Red</span> is majority → win with <span id="welcome_red_win">75</span>% chance</div>
-                    <div class="col-auto"><span class="text-primary">Blue</span> is majority → win with <span id="welcome_blue_win">75</span>% chance</div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -98,25 +57,6 @@
         }
         ex.oninput = updateExample;
         updateExample();
-    }
-    var sl = document.getElementById('welcome_practice_slider');
-    var rSpan = document.getElementById('welcome_practice_r');
-    var redWin = document.getElementById('welcome_red_win');
-    var blueWin = document.getElementById('welcome_blue_win');
-    if (sl && rSpan && redWin && blueWin) {
-        function formatPct(p) {
-            return p >= 99 ? (Math.round(p * 100) / 100).toFixed(2) : String(Math.round(p));
-        }
-        function updatePractice() {
-            var r = parseInt(sl.value, 10) / 100;
-            rSpan.textContent = Math.round(r * 100);
-            var redPct = (1 - Math.pow(1 - r, 2)) * 100;
-            var bluePct = (1 - Math.pow(r, 2)) * 100;
-            redWin.textContent = formatPct(redPct);
-            blueWin.textContent = formatPct(bluePct);
-        }
-        sl.oninput = updatePractice;
-        updatePractice();
     }
 })();
 </script>

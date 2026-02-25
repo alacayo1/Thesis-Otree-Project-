@@ -1,4 +1,4 @@
-{{ block title }}End of Block 5 (Survey){{ endblock }}
+{{ block title }}Block 5 Survey{{ endblock }}
 {{ block content }}
 
 <div class="card bg-light m-3">
@@ -23,6 +23,11 @@
         <p>How accurate do you believe {{ low_name }} was?</p>
         {{ form.confidence_5b }}
         {{ formfield_errors 'confidence_5b' }}
+    </div>
+</div>
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <p class="mb-0">You will now play one more round with each advisor for this block.</p>
     </div>
 </div>
 

@@ -96,9 +96,19 @@ class OddsComprehensionCheck(TimeTrackingMixin, Page):
         if values.get('odds_dots_90') != '30' or values.get('odds_pixel_90') != '20':
             return (
                 'One or both answers are incorrect. Use the table above: '
-                'Dots & Co. has 30 out of 100 advisors who are 90% accurate (30%). '
-                'PixelHouse has 20 out of 100 advisors who are 90% accurate (20%).'
+                'Dots & Co. has 30 out of 100 advisors who are 90% accurate (select 30). '
+                'PixelHouse has 20 out of 100 advisors who are 90% accurate (select 20).'
             )
+
+
+class BonusPayment(TimeTrackingMixin, Page):
+    """Bonus payment explanation page after advisor intro and comprehension check."""
+    def is_displayed(self):
+        return self.round_number == 1
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        return d
 
 
 class BlockIntro(TimeTrackingMixin, Page):
@@ -159,6 +169,9 @@ class AdvisorSelection(TimeTrackingMixin, Page):
     form_fields = ['selected_advisor_type']
 
     def is_displayed(self):
+        # Block-end rounds 19 and 20 are always passive (no advisor choice)
+        if getattr(self.player, 'block_end_round', 0) != 0:
+            return False
         return self.player.block_type == 'Active'
 
     def vars_for_template(self):
@@ -197,8 +210,21 @@ class AdvisorDisplay(TimeTrackingMixin, Page):
     def vars_for_template(self):
         d = super().vars_for_template()
         advice_high, advice_low = _advice_for_round(self.participant, self.round_number)
-        if self.player.block_type == 'Passive':
-            self.player.selected_advisor_type = random.choice(['High', 'Low'])
+        # Block-end rounds 19 and 20: always one round per advisor (High then Low), regardless of block type
+        if getattr(self.player, 'block_end_round', 0) == 1:
+            self.player.selected_advisor_type = 'High'
+        elif getattr(self.player, 'block_end_round', 0) == 2:
+            self.player.selected_advisor_type = 'Low'
+        elif self.player.block_type == 'Passive':
+            # Use pre-assigned sequence so each advisor appears exactly 9 times in rounds 1–18 (10 total with end rounds)
+            rpb = Constants.rounds_per_block
+            block_num = (self.round_number - 1) // rpb + 1
+            within_block = (self.round_number - 1) % rpb
+            seq = self.participant.vars.get(f'block_{block_num}_advisor_sequence', [])
+            if within_block < len(seq):
+                self.player.selected_advisor_type = seq[within_block]
+            else:
+                self.player.selected_advisor_type = random.choice(['High', 'Low'])
         if self.player.selected_advisor_type == 'High':
             advisor_name = self.player.advisor_high_name
             advice = advice_high
@@ -216,7 +242,7 @@ class AdvisorDisplay(TimeTrackingMixin, Page):
             'advisor_firm': advisor_firm,
             'advisor_person': advisor_person,
             'advice': advice,
-            'is_passive': self.player.block_type == 'Passive'
+            'is_passive': self.player.block_type == 'Passive' or getattr(self.player, 'block_end_round', 0) != 0
         })
         return d
 
@@ -267,6 +293,33 @@ class Feedback(TimeTrackingMixin, Page):
         })
         return d
 
+    def before_next_page(self):
+        super().before_next_page()
+        # Run block payoff at end of each block (after round 20, 40, ..., 120)
+        rpb = Constants.rounds_per_block
+        if self.round_number % rpb == 0:
+            block_num = self.round_number // rpb
+            Player.run_block_payoff(self.player, block_num)
+
+
+def _block_end_survey_rounds():
+    """Round numbers where each block's end survey is shown (after round 18 of that block)."""
+    rpb = Constants.rounds_per_block
+    return [18 + k * rpb for k in range(Constants.num_blocks)]
+
+
+class BlockEndRoundsIntro(TimeTrackingMixin, Page):
+    """Shown after block end survey: you will play one more round with each advisor."""
+    def is_displayed(self):
+        return self.round_number in _block_end_survey_rounds()
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        rpb = Constants.rounds_per_block
+        block_num = (self.round_number - 1) // rpb + 1
+        d['block_num'] = block_num
+        return d
+
 
 class Block1EndSurvey(TimeTrackingMixin, Page):
     form_model = 'player'
@@ -274,15 +327,11 @@ class Block1EndSurvey(TimeTrackingMixin, Page):
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.rounds_per_block
-
-    def before_next_page(self):
-        super().before_next_page()
-        Player.run_block_payoff(self.player, 1)
+        return self.round_number == 18
 
     def vars_for_template(self):
         d = super().vars_for_template()
-        last = self.player.in_round(Constants.rounds_per_block)
+        last = self.player.in_round(self.round_number)
         d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
         return d
 
@@ -293,15 +342,11 @@ class Block2EndSurvey(TimeTrackingMixin, Page):
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.rounds_per_block * 2
-
-    def before_next_page(self):
-        super().before_next_page()
-        Player.run_block_payoff(self.player, 2)
+        return self.round_number == Constants.rounds_per_block * 1 + 18  # 38
 
     def vars_for_template(self):
         d = super().vars_for_template()
-        last = self.player.in_round(Constants.rounds_per_block * 2)
+        last = self.player.in_round(self.round_number)
         d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
         return d
 
@@ -312,15 +357,11 @@ class Block3EndSurvey(TimeTrackingMixin, Page):
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.rounds_per_block * 3
-
-    def before_next_page(self):
-        super().before_next_page()
-        Player.run_block_payoff(self.player, 3)
+        return self.round_number == Constants.rounds_per_block * 2 + 18  # 58
 
     def vars_for_template(self):
         d = super().vars_for_template()
-        last = self.player.in_round(Constants.rounds_per_block * 3)
+        last = self.player.in_round(self.round_number)
         d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
         return d
 
@@ -331,15 +372,11 @@ class Block4EndSurvey(TimeTrackingMixin, Page):
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.rounds_per_block * 4
-
-    def before_next_page(self):
-        super().before_next_page()
-        Player.run_block_payoff(self.player, 4)
+        return self.round_number == Constants.rounds_per_block * 3 + 18  # 78
 
     def vars_for_template(self):
         d = super().vars_for_template()
-        last = self.player.in_round(Constants.rounds_per_block * 4)
+        last = self.player.in_round(self.round_number)
         d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
         return d
 
@@ -350,15 +387,11 @@ class Block5EndSurvey(TimeTrackingMixin, Page):
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.rounds_per_block * 5
-
-    def before_next_page(self):
-        super().before_next_page()
-        Player.run_block_payoff(self.player, 5)
+        return self.round_number == Constants.rounds_per_block * 4 + 18  # 98
 
     def vars_for_template(self):
         d = super().vars_for_template()
-        last = self.player.in_round(Constants.rounds_per_block * 5)
+        last = self.player.in_round(self.round_number)
         d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
         return d
 
@@ -369,15 +402,11 @@ class Block6EndSurvey(TimeTrackingMixin, Page):
     preserve_unsubmitted_inputs = True
 
     def is_displayed(self):
-        return self.round_number == Constants.num_rounds
-
-    def before_next_page(self):
-        super().before_next_page()
-        Player.run_block_payoff(self.player, 6)
+        return self.round_number == Constants.rounds_per_block * 5 + 18  # 118
 
     def vars_for_template(self):
         d = super().vars_for_template()
-        last = self.player.in_round(Constants.num_rounds)
+        last = self.player.in_round(self.round_number)
         d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
         return d
 
@@ -411,6 +440,7 @@ page_sequence = [
     Welcome,
     AdvisorOddsIntro,
     OddsComprehensionCheck,
+    BonusPayment,
     BlockIntro,
     ViewImage,
     InitialPrediction,
@@ -424,5 +454,6 @@ page_sequence = [
     Block4EndSurvey,
     Block5EndSurvey,
     Block6EndSurvey,
+    BlockEndRoundsIntro,  # after each block's survey so intro always follows the survey
     Earnings
 ]

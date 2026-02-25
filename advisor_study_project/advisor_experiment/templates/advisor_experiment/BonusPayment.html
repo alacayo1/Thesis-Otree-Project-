@@ -1,0 +1,99 @@
+{{ block title }}How You Will Be Paid{{ endblock }}
+{{ block content }}
+
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <h4 class="mt-1 mb-2">Base + Bonus Payment</h4>
+        <p>
+            You will be <strong>paid a base of $5</strong> plus the chance to earn <strong>an $8 bonus</strong> based on your performance.
+            Payment will be determined by a lottery based on your confidence rating out of 100%. 
+            <strong>The payoff scheme is designed so that you should give your honest guess of the odds
+                 there are more Red than Blue pixels. </strong>
+        </p>
+        <p>
+            For example: if you believe without a doubt that
+            there are more Red pixels, you should give a rating of 100%. If you think Blue is for sure the majority, you should give a rating of 0%.
+            If you have absolutely no opinion, you should give a rating of 50%.
+        </p>
+        
+
+        <div class="mb-3">
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#payoff-explanation" aria-expanded="false" aria-controls="payoff-explanation">
+                See payoff explanation
+            </button>
+            <div class="collapse mt-2" id="payoff-explanation">
+                The lottery is structured as follows: 
+                <table class="table table-bordered w-auto mb-3">
+                    <thead>
+                        <tr><th>If actual majority is…</th><th>Your win probability</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Red</td><td>p = 1 − (1−r)²</td></tr>
+                        <tr><td>Blue</td><td>p = 1 − r²</td></tr>
+                    </tbody>
+                </table>
+                
+                <p>
+                    Say you think there is an 80% chance the majority is red. r = 0.8.<br>
+                    If Red is the majority, the odds you will get paid p = 1 − (1−r)² = 1 − (1−0.8)² = 96% chance.<br>
+                    If it is not the majority, the odds you will get paid p = 1 − r² = 1 − 0.8² = 36% chance.<br>
+                    <strong>So, if you really believe it is 80% likely to be red,</strong> your expected payout
+                    is .8×96% + .2×36% = 84% chance of getting the bonus.
+                </p>
+            </div>
+        </div>
+       
+
+        <div class="card welcome-blue-block mb-3">
+            <div class="card-body">
+                <p>You will be paid based on <strong>one initial guess</strong> and <strong>one final guess</strong>, chosen at random, from EACH block.
+                This means there are 16 total random responses that will factor into your bonus payment, with a maximum of $8. 
+                <br>**ANY of your guesses COULD matter!**</p>
+            </div>
+        </div>
+
+        <p>
+            You can play with the slider below to better understand how the payoff scheme works.<br>
+            The percentage values of winning the bonus for if Red or Blue are the majority are given underneath.
+        </p>
+        <div class="card welcome-blue-block-bottom mb-0">
+            <div class="card-body text-center py-3">
+                <label class="form-label mb-2">Your stated probability that Red is the majority: <strong><span id="welcome_practice_r">50</span>%</strong></label>
+                <input type="range" id="welcome_practice_slider" min="0" max="100" value="50" class="form-range mb-3" style="max-width: 300px;">
+                <div class="row text-start justify-content-center g-2">
+                    <div class="col-auto"><span style="color: #c00;">Red</span> is majority → win with <span id="welcome_red_win">75</span>% chance</div>
+                    <div class="col-auto"><span class="text-primary">Blue</span> is majority → win with <span id="welcome_blue_win">75</span>% chance</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var sl = document.getElementById('welcome_practice_slider');
+    var rSpan = document.getElementById('welcome_practice_r');
+    var redWin = document.getElementById('welcome_red_win');
+    var blueWin = document.getElementById('welcome_blue_win');
+    if (sl && rSpan && redWin && blueWin) {
+        function formatPct(p) {
+            return p >= 99 ? (Math.round(p * 100) / 100).toFixed(2) : String(Math.round(p));
+        }
+        function updatePractice() {
+            var r = parseInt(sl.value, 10) / 100;
+            rSpan.textContent = Math.round(r * 100);
+            var redPct = (1 - Math.pow(1 - r, 2)) * 100;
+            var bluePct = (1 - Math.pow(r, 2)) * 100;
+            redWin.textContent = formatPct(redPct);
+            blueWin.textContent = formatPct(bluePct);
+        }
+        sl.oninput = updatePractice;
+        updatePractice();
+    }
+})();
+</script>
+
+{{ next_button }}
+
+{{ endblock }}
+
