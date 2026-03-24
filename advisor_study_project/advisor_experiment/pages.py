@@ -33,6 +33,21 @@ class TimeTrackingMixin:
         super().before_next_page()
 
 
+class Consent(Page):
+    """First page: consent form with required checkbox and computer number."""
+    form_model = 'player'
+    form_fields = ['consent_accepted', 'computer_number']
+
+    def is_displayed(self):
+        return self.round_number == 1
+
+    def error_message(self, values):
+        if not values.get('consent_accepted'):
+            return 'You must check the box to confirm that you have read the consent form and agree to participate.'
+        if not (values.get('computer_number') or '').strip():
+            return 'Please enter your assigned computer number (top right of your desk) before continuing.'
+
+
 class Welcome(TimeTrackingMixin, Page):
     def is_displayed(self):
         return self.round_number == 1
@@ -114,15 +129,15 @@ class BonusPayment(TimeTrackingMixin, Page):
 class BlockIntro(TimeTrackingMixin, Page):
     def is_displayed(self):
         rpb = Constants.rounds_per_block
-        return self.round_number in (1, 1 + rpb, 1 + 2*rpb, 1 + 3*rpb, 1 + 4*rpb, 1 + 5*rpb)
+        return self.round_number in (1, 1 + rpb, 1 + 2*rpb, 1 + 3*rpb, 1 + 4*rpb, 1 + 5*rpb, 1 + 6*rpb, 1 + 7*rpb)
 
     def vars_for_template(self):
         d = super().vars_for_template()
         rpb = Constants.rounds_per_block
         rn = self.round_number
         block_num = min((rn - 1) // rpb + 1, Constants.num_blocks)
-        high_id = ['1a', '2a', '3a', '4a', '5a', '6a'][block_num - 1]
-        low_id = ['1b', '2b', '3b', '4b', '5b', '6b'][block_num - 1]
+        high_id = ['1a', '2a', '3a', '4a', '5a', '6a', '7a', '8a'][block_num - 1]
+        low_id = ['1b', '2b', '3b', '4b', '5b', '6b', '7b', '8b'][block_num - 1]
         block_high_name = str(self.participant.vars.get(f'advisor_name_{high_id}', f'Team {high_id}'))
         block_low_name = str(self.participant.vars.get(f'advisor_name_{low_id}', f'Team {low_id}'))
         acc_pct = [90, 75, 60, 50]
@@ -295,7 +310,7 @@ class Feedback(TimeTrackingMixin, Page):
 
     def before_next_page(self):
         super().before_next_page()
-        # Run block payoff at end of each block (after round 20, 40, ..., 120)
+        # Run block payoff at end of each block (after round 20, 40, ..., 160)
         rpb = Constants.rounds_per_block
         if self.round_number % rpb == 0:
             block_num = self.round_number // rpb
@@ -411,25 +426,50 @@ class Block6EndSurvey(TimeTrackingMixin, Page):
         return d
 
 
-def _round_to_nearest_third(x):
-    """Round to nearest 1/3 so result has decimal part .00, .33, or .66."""
-    return round(round(float(x) * 3) / 3, 2)
+class Block7EndSurvey(TimeTrackingMixin, Page):
+    form_model = 'player'
+    form_fields = ['confidence_7a', 'confidence_7b']
+    preserve_unsubmitted_inputs = True
+
+    def is_displayed(self):
+        return self.round_number == Constants.rounds_per_block * 6 + 18  # 138
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        last = self.player.in_round(self.round_number)
+        d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
+        return d
+
+
+class Block8EndSurvey(TimeTrackingMixin, Page):
+    form_model = 'player'
+    form_fields = ['confidence_8a', 'confidence_8b']
+    preserve_unsubmitted_inputs = True
+
+    def is_displayed(self):
+        return self.round_number == Constants.rounds_per_block * 7 + 18  # 158
+
+    def vars_for_template(self):
+        d = super().vars_for_template()
+        last = self.player.in_round(self.round_number)
+        d.update({'high_name': last.advisor_high_name, 'low_name': last.advisor_low_name})
+        return d
 
 
 class Earnings(TimeTrackingMixin, Page):
-    """Final page: show total earnings (participation + confidence lotteries), rounded to nearest 1/3 (.00, .33, .66)."""
+    """Final page: show-up fee + lottery earnings (each winning draw pays lottery_pay_per_win, e.g. $0.50 × wins)."""
     def is_displayed(self):
         return self.round_number == Constants.num_rounds
 
     def vars_for_template(self):
         d = super().vars_for_template()
         participation = cu(self.session.config.get('participation_fee', 6))
-        lottery_earned_raw = cu(round(float(self.participant.payoff or 0), 2))
-        total_raw = participation + lottery_earned_raw
-        total = cu(_round_to_nearest_third(total_raw))
-        lottery_earned = total - participation  # implied lottery part so display sums to total
+        lottery_earned = cu(round(float(self.participant.payoff or 0), 2))
+        total = participation + lottery_earned
         self.player.final_total_pay = total
+        computer_number = getattr(self.player.in_round(1), 'computer_number', '') or ''
         d.update({
+            'computer_number': computer_number,
             'lottery_earned': lottery_earned,
             'participation_fee': participation,
             'total_earnings': total,
@@ -437,6 +477,7 @@ class Earnings(TimeTrackingMixin, Page):
         return d
 
 page_sequence = [
+    Consent,
     Welcome,
     AdvisorOddsIntro,
     OddsComprehensionCheck,
@@ -454,6 +495,8 @@ page_sequence = [
     Block4EndSurvey,
     Block5EndSurvey,
     Block6EndSurvey,
+    Block7EndSurvey,
+    Block8EndSurvey,
     BlockEndRoundsIntro,  # after each block's survey so intro always follows the survey
     Earnings
 ]

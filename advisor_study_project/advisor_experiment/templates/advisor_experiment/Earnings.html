@@ -4,26 +4,28 @@
 <div class="card bg-light m-3">
     <div class="card-body">
         <h3>Thank you for completing the study!</h3>
-        <p>Your earnings are summarized below.</p>
+        <p>Your earnings are summarized below. Please fill in the paper receipt with the following information:</p>
         <table class="table table-bordered">
             <tbody>
                 <tr>
-                    <td>Participation fee</td>
+                    <td>Computer ID (Check it is correct):</td>
+                    <td>{{ computer_number }}</td>
+                </tr>
+                <tr>
+                    <td>Show-up fee</td>
                     <td>{{ participation_fee }}</td>
                 </tr>
                 <tr>
-                    <td>Earnings from confidence lotteries</td>
+                    <td>Experimental Earnings</td>
                     <td>{{ lottery_earned }}</td>
                 </tr>
                 <tr class="table-success fw-bold">
-                    <td>Total earnings</td>
+                    <td>Total</td>
                     <td>{{ total_earnings }}</td>
                 </tr>
             </tbody>
         </table>
     </div>
 </div>
-
-{{ next_button }}
 
 {{ endblock }}

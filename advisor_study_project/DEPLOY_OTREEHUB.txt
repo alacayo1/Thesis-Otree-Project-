@@ -27,3 +27,12 @@ CHECKLIST – do these in order:
    Open the participant link in a private/incognito window.
    Welcome page should show "Version 2025-01-v3" at the bottom.
    If not, the server is still on the old build – repeat from step 2 and do step 4.
+
+-----
+Github passing 
+1. cd /Users/alexanderlacayo/Thesis
+git add -A
+
+2.git commit -m "Your commit message here"
+
+3.git push origin main

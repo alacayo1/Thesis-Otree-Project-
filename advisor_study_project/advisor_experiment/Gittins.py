@@ -1,214 +1,148 @@
-import numpy as np
 import sys
-import matplotlib.pyplot as plt  # type: ignore[import-untyped]
-import seaborn as sns  # type: ignore[import-untyped]
+import numpy as np
 
-# --- CONFIGURATION & PRIORS ---
-# Accuracy levels 90%, 75%, 60%, 50% with same odds as before
-PRIOR_A = {0.9: 0.30, 0.75: 0.30, 0.6: 0.20, 0.5: 0.20}
-PRIOR_B = {0.9: 0.20, 0.75: 0.20, 0.6: 0.30, 0.5: 0.30}
-HORIZON = 20
-SIMULATION_RUNS = 5000
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt  # type: ignore[import-untyped]
+    import seaborn as sns  # type: ignore[import-untyped]
+    HAS_PLOTTING = True
+except ImportError:
+    HAS_PLOTTING = False
 
-sys.setrecursionlimit(2000)
+# Allow deep recursion for DP
+sys.setrecursionlimit(5000)
 
-# --- 1. THE MATH ENGINE (Dynamic Programming) ---
+# 1. SETUP PARAMETERS (match experiment: Dots & Co / PixelHouse priors)
+accuracies = np.array([0.90, 0.75, 0.60, 0.50])
+prior_dots = np.array([0.3, 0.3, 0.2, 0.2])
+prior_pixel = np.array([0.2, 0.2, 0.3, 0.3])
+gamma = 0.95
+T_MAX = 20  # 20-round finite-horizon decision problem
 
-def get_expected_accuracy(prior):
-    """Calculates expected value of an advisor given their current belief state."""
-    return sum(acc * prob for acc, prob in prior.items())
+def get_mu(p):
+    """Expected immediate reward (probability of correct prediction) under prior p."""
+    return np.dot(p, accuracies)
 
-def update_prior(prior, success):
-    """Bayesian update of the prior."""
-    new_prior = {}
-    total_prob = 0.0
-    for acc, prob in prior.items():
-        likelihood = acc if success else (1 - acc)
-        new_prior[acc] = prob * likelihood
-        total_prob += new_prior[acc]
-    
-   
-    for acc in new_prior:
-        new_prior[acc] /= total_prob
-    return new_prior
+def update_p(p, s, f):
+    """Bayesian update: s successes, f failures."""
+    post = p * (accuracies**s) * ((1 - accuracies)**f)
+    return post / np.sum(post)
 
-# Memoization Dictionary
-memo = {}
-
-def solve_dp(sA, fA, sB, fB, priorA, priorB):
+# 2. INFINITE-HORIZON GITTINS INDEX (retirement / restart formulation)
+def get_gittins(p_init):
     """
-    Returns the Q-values (Expected Future Reward) for choosing A and B.
-    State: (wins_A, losses_A, wins_B, losses_B)
+    Gittins index = retirement value lambda such that you're indifferent between
+    retiring (get lambda per period forever) and continuing with this arm.
+    Bellman: V = max( lambda/(1-gamma), mu + gamma * (mu*V(p_succ) + (1-mu)*V(p_fail)) ).
     """
-    rounds_played = sA + fA + sB + fB
-    if rounds_played >= HORIZON:
-        return 0.0, 0.0
-    
+    memo_v = {}
 
-    state_key = (sA, fA, sB, fB)
-    if state_key in memo:
-        return memo[state_key]
+    def value_func(lambda_val, p, depth=0):
+        if depth > 50:
+            return get_mu(p) / (1 - gamma)
+        key = (round(lambda_val, 6), tuple(np.round(p, 5)))
+        if key in memo_v:
+            return memo_v[key]
+        mu = get_mu(p)
+        v_retire = lambda_val / (1 - gamma)
+        v_cont = mu + gamma * (
+            mu * value_func(lambda_val, update_p(p, 1, 0), depth + 1)
+            + (1 - mu) * value_func(lambda_val, update_p(p, 0, 1), depth + 1)
+        )
+        res = max(v_retire, v_cont)
+        memo_v[key] = res
+        return res
 
-    # --- CALC VALUE FOR CHOOSING A ---
-    exp_A = get_expected_accuracy(priorA)
-    
-    # Future if A succeeds
-    pA_succ = update_prior(priorA, True)
-    future_A_succ = max(solve_dp(sA + 1, fA, sB, fB, pA_succ, priorB))
-    
-    # Future if A fails
-    pA_fail = update_prior(priorA, False)
-    future_A_fail = max(solve_dp(sA, fA + 1, sB, fB, pA_fail, priorB))
-    
-    q_A = exp_A * (1 + future_A_succ) + (1 - exp_A) * (0 + future_A_fail)
+    low, high = 0.5, 0.95
+    for _ in range(20):
+        mid = (low + high) / 2
+        v = value_func(mid, p_init)
+        if v > mid / (1 - gamma):
+            low = mid
+        else:
+            high = mid
+    return (low + high) / 2
 
-    # --- CALC VALUE FOR CHOOSING B ---
-    exp_B = get_expected_accuracy(priorB)
-    
-    # Future if B succeeds
-    pB_succ = update_prior(priorB, True)
-    future_B_succ = max(solve_dp(sA, fA, sB + 1, fB, priorA, pB_succ))
-    
-    # Future if B fails
-    pB_fail = update_prior(priorB, False)
-    future_B_fail = max(solve_dp(sA, fA, sB, fB + 1, priorA, pB_fail))
-    
-    q_B = exp_B * (1 + future_B_succ) + (1 - exp_B) * (0 + future_B_fail)
-    
-    memo[state_key] = (q_A, q_B)
-    return q_A, q_B
+# 3. FINITE 20-ROUND DP (two-armed bandit: discrete state (s1,f1,s2,f2))
+memo_dp = {}
 
-# --- 2. GENERATE DATA FOR PLOTS ---
+def get_dp_val_discrete(s1, f1, s2, f2, rounds_left):
+    """
+    20-round optimal expected total correct answers.
+    State: (s1, f1) = successes/failures on arm A (Dots), (s2, f2) = arm B (Pixel).
+    rounds_left: rounds remaining. Priors are reconstructed from (s,f) + prior_dots/prior_pixel.
+    """
+    if rounds_left <= 0:
+        return 0.0
+    state = (s1, f1, s2, f2, rounds_left)
+    if state in memo_dp:
+        return memo_dp[state]
 
-def generate_heatmap_data():
-    print("Generating Heatmap Data (Patience Frontier)...")
-    # We look at the decision boundary assuming B is still "Fresh" (0 wins, 0 losses)
-    grid_size = 14
-    diff_grid = np.zeros((grid_size, grid_size))
-    
-    for w in range(grid_size):
-        for l in range(grid_size):
-            if w + l >= HORIZON:
-                diff_grid[l, w] = np.nan 
-                continue
-            
-            # Reconstruct A's prior for this specific grid cell
-            curr_pA = PRIOR_A.copy()
-            for _ in range(w): curr_pA = update_prior(curr_pA, True)
-            for _ in range(l): curr_pA = update_prior(curr_pA, False)
-            
-            # Get Q-values assuming B is fresh (0,0)
-            qA, qB = solve_dp(w, l, 0, 0, curr_pA, PRIOR_B)
-            
-            # Store difference: Positive = Stay A, Negative = Switch B
-            diff_grid[l, w] = qA - qB
-            
-    return diff_grid
+    p1 = update_p(prior_dots, s1, f1)
+    p2 = update_p(prior_pixel, s2, f2)
+    mu1, mu2 = get_mu(p1), get_mu(p2)
 
-def run_simulation():
-    print(f"Running Monte Carlo Simulation ({SIMULATION_RUNS} runs)...")
-    scores = []
-    
-    for _ in range(SIMULATION_RUNS):
-        # 1. Determine True Accuracies for this specific world
-        true_A = np.random.choice(list(PRIOR_A.keys()), p=list(PRIOR_A.values()))
-        true_B = np.random.choice(list(PRIOR_B.keys()), p=list(PRIOR_B.values()))
-        
-        # 2. Play the game
-        sA, fA, sB, fB = 0, 0, 0, 0
-        pA, pB = PRIOR_A.copy(), PRIOR_B.copy()
-        score = 0
-        
-        for _ in range(HORIZON):
-            qA, qB = solve_dp(sA, fA, sB, fB, pA, pB)
-            
-            # Greedy choice on Q-values
-            choice = 'A' if qA >= qB else 'B'
-            
-            if choice == 'A':
-                is_correct = np.random.rand() < true_A
-                if is_correct:
-                    score += 1
-                    sA += 1
-                    pA = update_prior(pA, True)
-                else:
-                    fA += 1
-                    pA = update_prior(pA, False)
-            else:
-                is_correct = np.random.rand() < true_B
-                if is_correct:
-                    score += 1
-                    sB += 1
-                    pB = update_prior(pB, True)
-                else:
-                    fB += 1
-                    pB = update_prior(pB, False)
-        scores.append(score)
-    return scores
+    v1 = mu1 + mu1 * get_dp_val_discrete(s1 + 1, f1, s2, f2, rounds_left - 1) + (1 - mu1) * get_dp_val_discrete(s1, f1 + 1, s2, f2, rounds_left - 1)
+    v2 = mu2 + mu2 * get_dp_val_discrete(s1, f1, s2 + 1, f2, rounds_left - 1) + (1 - mu2) * get_dp_val_discrete(s1, f1, s2, f2 + 1, rounds_left - 1)
 
-# --- 3. PLOTTING FUNCTION ---
+    res = max(v1, v2)
+    memo_dp[state] = res
+    return res
 
-def create_thesis_plots(diff_grid, scores):
-    print("Generating Plots...")
-    sns.set_context("paper", font_scale=1.5)
-    sns.set_style("whitegrid")
-    
-    # --- FIGURE 1: HEATMAP ---
-    fig1, ax1 = plt.subplots(figsize=(8, 6))
-    
-    # Custom Colormap: Red (Switch) to Blue (Stay)
-    # Using a diverging palette centered at 0
-    cmap = sns.diverging_palette(10, 240, as_cmap=True, center="light")
-    
-    sns.heatmap(diff_grid, ax=ax1, cmap=cmap, center=0, 
-                annot=True, fmt=".1f", annot_kws={"size": 7},
-                cbar_kws={'label': 'Expected Advantage of A vs B'},
-                square=True, mask=np.isnan(diff_grid))
-    
-    ax1.set_title("Optimal 'Patience Frontier' (Start of Block)", fontweight='bold')
-    ax1.set_xlabel("Wins by Advisor A")
-    ax1.set_ylabel("Losses by Advisor A")
-    ax1.invert_yaxis() # Put 0 losses at bottom
-    
-    # Add Text Annotations for clarity
-    ax1.text(0.5, 0.5, "START", color='black', ha='center', va='center', weight='bold', fontsize=10)
-    ax1.text(0.5, 1.5, "SWITCH", color='darkred', ha='center', va='center', weight='bold', fontsize=9)
-    
+def get_dp_val(p1, p2, rounds_left):
+    """Wrapper: compute (s,f) from priors and call discrete DP. Only valid at block start (0,0,0,0)."""
+    if rounds_left <= 0:
+        return 0.0
+    # For "start" we have no observations yet
+    return get_dp_val_discrete(0, 0, 0, 0, rounds_left)
+
+# 4. GENERATE DATA
+# 4a. Infinite-horizon Gittins index map (single arm: Dots prior, (s,f) grid)
+size = 8
+g_map = np.zeros((size, size))
+m_map = np.zeros((size, size))
+
+for f in range(size):
+    for s in range(size):
+        p_curr = update_p(prior_dots, s, f)
+        g_map[f, s] = get_gittins(p_curr)
+        m_map[f, s] = get_mu(p_curr)
+
+# 4b. 20-round finite-horizon optimal value (two arms: Dots vs Pixel from start)
+val_20_start = get_dp_val(prior_dots, prior_pixel, T_MAX)
+print(f"Infinite-horizon Gittins: index at prior = {get_gittins(prior_dots):.4f}")
+print(f"20-round optimal expected correct (from start, both arms): {val_20_start:.4f}")
+
+# 5. PLOTTING (optional)
+if HAS_PLOTTING:
+    try:
+        plt.style.use("seaborn-v0_8-muted")
+    except Exception:
+        try:
+            plt.style.use("seaborn-muted")
+        except Exception:
+            pass
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(g_map, annot=True, fmt=".3f", cmap="RdBu_r", ax=ax)
+    ax.set_title("Gittins Index Map (Infinite Horizon, Dots & Co Prior)")
+    ax.set_xlabel("Wins (s)")
+    ax.set_ylabel("Losses (f)")
+    ax.invert_yaxis()
     plt.tight_layout()
-    plt.savefig("Figure1_PatienceFrontier.png", dpi=300)
-    print("Saved Figure1_PatienceFrontier.png")
-    
-    # --- FIGURE 2: HISTOGRAM ---
-    fig2, ax2 = plt.subplots(figsize=(8, 6))
-    
-    mean_score = np.mean(scores)
-    sns.histplot(scores, bins=np.arange(4.5, 21.5, 1), kde=False, color="#2c7fb8", alpha=0.8, stat='percent')
-    
-    # Add Mean Line
-    ax2.axvline(mean_score, color='red', linestyle='--', linewidth=2, label=f'Mean Score: {mean_score:.2f}')
-    
-    ax2.set_title(f"Performance Distribution (Optimal Agent)", fontweight='bold')
-    ax2.set_xlabel("Total Correct Answers (out of 20)")
-    ax2.set_ylabel("Frequency (%)")
-    ax2.set_xticks(range(5, 21))
-    ax2.legend()
-    
-    plt.tight_layout()
-    plt.savefig("Figure2_ScoreDistribution.png", dpi=300)
-    print("Saved Figure2_ScoreDistribution.png")
+    plt.savefig("gittins_map.png")
+    plt.close()
 
-if __name__ == "__main__":
-    # Run from the same environment where matplotlib/seaborn are installed, e.g.:
-    #   cd advisor_study_project/advisor_experiment && python Gittins.py
-    # If you get ModuleNotFoundError for matplotlib/seaborn, install for that Python:
-    #   python -m pip install matplotlib seaborn numpy
-    # 1. Populate Memoization Table (by running start state)
-    print("Solving DP...")
-    solve_dp(0, 0, 0, 0, PRIOR_A.copy(), PRIOR_B.copy())
-    
-    # 2. Get Data
-    heatmap_data = generate_heatmap_data()
-    simulation_scores = run_simulation()
-    
-    # 3. Plot (skipped if matplotlib/seaborn not installed)
-    create_thesis_plots(heatmap_data, simulation_scores)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(g_map - m_map, annot=True, fmt=".3f", cmap="YlGnBu", ax=ax)
+    ax.set_title("Information Bonus (Gittins - Myopic)")
+    ax.set_xlabel("Wins (s)")
+    ax.set_ylabel("Losses (f)")
+    ax.invert_yaxis()
+    plt.tight_layout()
+    plt.savefig("information_bonus.png")
+    plt.close()
+    print("Figures saved: gittins_map.png, information_bonus.png")
+else:
+    print("Install matplotlib and seaborn to generate figures.")

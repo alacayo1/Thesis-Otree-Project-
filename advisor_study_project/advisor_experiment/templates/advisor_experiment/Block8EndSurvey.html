@@ -1,0 +1,36 @@
+{{ block title }}Block 8 Survey{{ endblock }}
+{{ block content }}
+
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <p>Please answer the following about the advisors in Block 8: {{ high_name }} and {{ low_name }}.</p>
+        <p>Please provide your best guess.</p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>{{ high_name }}</h5>
+        <p>How accurate do you believe {{ high_name }} was?</p>
+        {{ form.confidence_8a }}
+        {{ formfield_errors 'confidence_8a' }}
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>{{ low_name }}</h5>
+        <p>How accurate do you believe {{ low_name }} was?</p>
+        {{ form.confidence_8b }}
+        {{ formfield_errors 'confidence_8b' }}
+    </div>
+</div>
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <p class="mb-0">You will now play one more round with each advisor for this block.</p>
+    </div>
+</div>
+
+{{ next_button }}
+
+{{ endblock }}

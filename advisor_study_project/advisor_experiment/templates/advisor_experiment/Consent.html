@@ -1,0 +1,117 @@
+{{ block title }}Consent Form{{ endblock }}
+{{ block content }}
+
+<div class="card bg-light m-3">
+    <div class="card-body"></div>
+        <p class="card-text">
+            The purpose of this form is to give you information to help you decide if you want to take part in a research study. This consent form includes information about:
+        </p>
+        <ul>
+            <li>why the study is being done;</li>
+            <li>the things that you will be asked to do if you are in the study;</li>
+            <li>any known risks involved;</li>
+            <li>any potential benefit;</li>
+        </ul>
+        <p class="card-text">
+            Please take the time to read this form. We will talk to you about taking part in this research study. You should ask us any questions you have about this form and about this research study.
+        </p>
+        <p class="card-text"><strong>You do not have to participate if you don't want to.</strong></p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>What will I be asked to do if I choose to be in this study?</h5>
+        <p>
+            We will ask you to observe red-and-blue pixilated images for short intervals and determine which color is dominant. You will then be asked to consult advisors about your decision and update accordingly. This will be repeated over many rounds. You will be asked questions about the experiment at the end of the study. It should take around 45 minutes.
+        </p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>Risks</h5>
+        <p>
+            We do not think that there are any risks to taking part in this study. You will be exposed to red-and-blue pixelated images and asked to make decisions that have the potential for small monetary gain. Mental stress and eye strain should be minimal.
+        </p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>Benefits</h5>
+        <p>
+            You will not benefit from taking part in this study beyond monetary compensation, but your participation may help improve our understanding of human information selection and processing with important real-world implications.
+        </p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>Confidentiality</h5>
+        <p>
+            No personal information will be saved and minimal information will be collected. All participants will be anonymous and randomly recruited via the Online Recruitment System for Economic Experiments (ORSEE) subject pool, which contains built-in protocols for privacy protections.
+        </p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>Compensation</h5>
+        <p>
+            You will receive a $6 payment for participating in this study, with the opportunity to earn up to $14 dollars based on your performance in the study. Specifically, you will earn a bonus for each correct answer provided.
+        </p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>Costs</h5>
+        <p><strong>Will I incur costs if I take part in this study?</strong></p>
+        <p>There will be no costs to you for being in this study.</p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>Voluntary Participation</h5>
+        <p>
+            Participation in research is entirely voluntary. Your decision about whether to participate will have no impact on your employment, student status, or any other entitlements. If you do choose to participate, the answers given will have no impact on your student status, salary, grade, or employment with Columbia University. You may withdraw from participation at any time.
+        </p>
+    </div>
+</div>
+
+<div class="card m-3">
+    <div class="card-body">
+        <h5>Who can I call if I have questions?</h5>
+        <p>
+            You may call Phone 512-814-9292 if you have any questions or concerns about this research study.
+        </p>
+        <p>
+            If you have any questions about your rights or responsibilities as a research participant, please contact the Columbia University Human Research Protection Office at: Phone 212-305-5883; email askirb@columbia.edu
+        </p>
+    </div>
+</div>
+
+<div class="card border-primary m-3">
+    <div class="card-body">
+        <h5>Statement of Consent</h5>
+        <p class="mb-3">
+            I have read this consent form and the research study has been explained to me. I agree to be in the research study described above.
+        </p>
+        <div class="form-check mb-3">
+            
+            <label class="form-check-label" for="id_consent_accepted">I agree to participate</label>
+            {{ form.consent_accepted }}
+        </div>
+        {{ formfield_errors 'consent_accepted' }}
+
+        <p class="mb-2"><strong>Please input your assigned computer number (top right of your desk). Thank you!</strong></p>
+        {{ form.computer_number }}
+        {{ formfield_errors 'computer_number' }}
+    </div>
+</div>
+
+{{ next_button }}
+
+{{ endblock }}

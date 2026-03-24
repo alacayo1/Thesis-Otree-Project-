@@ -11,7 +11,7 @@ import random
 
 doc = """
 Advisor Study: Active vs Passive Sampling.
-6 Blocks: 3 Active and 3 Passive per participant (counterbalanced). No switching costs.
+8 Blocks: 4 Active and 4 Passive per participant (counterbalanced). No switching costs.
 """
 
 ROUNDS_PER_BLOCK = 20  # 18 participant rounds + 2 block-end rounds (one per advisor)
@@ -29,15 +29,15 @@ ACCURACY_CHOICES = [
 class Constants(BaseConstants):
     name_in_url = 'advisor_experiment'
     players_per_group = None
-    num_blocks = 6
+    num_blocks = 8
     num_rounds = ROUNDS_PER_BLOCK * num_blocks
     rounds_per_block = ROUNDS_PER_BLOCK
 
     # Payoffs: binarized scoring rule. Per block, one round drawn for prior and one for posterior; each draw pays or not. Max $8.
     endowment = cu(5.00)
     bonus_total = cu(8.00)
-    # 2 draws per block × 6 blocks = 12 draws total; each win pays 8/12 ≈ 0.67
-    lottery_pay_per_win = cu(8.00 / 12)
+    # 2 draws per block × 8 blocks = 16 draws total; each win pays 8/16 = 0.50
+    lottery_pay_per_win = cu(8.00 / 16)
 
     # Grid Settings for pixel image (400 pixels = 40×10, doubled from 200)
     grid_width = 40
@@ -47,32 +47,32 @@ class Constants(BaseConstants):
 
 class Subsession(BaseSubsession):
     def creating_session(self):
-        PROBS_DOMINANT = [0.30, 0.30, 0.20, 0.20]   # 1a,2a,3a,4a,5a,6a (Dots & Co.)
-        PROBS_INVERSE = [0.20, 0.20, 0.30, 0.30]    # 1b,2b,3b,4b,5b,6b (PixelHouse)
-        HIGH_IDS = ['1a', '2a', '3a', '4a', '5a', '6a']
-        LOW_IDS = ['1b', '2b', '3b', '4b', '5b', '6b']
+        PROBS_DOMINANT = [0.30, 0.30, 0.20, 0.20]   # 1a..8a (Dots & Co.)
+        PROBS_INVERSE = [0.20, 0.20, 0.30, 0.30]    # 1b..8b (PixelHouse)
+        HIGH_IDS = ['1a', '2a', '3a', '4a', '5a', '6a', '7a', '8a']
+        LOW_IDS = ['1b', '2b', '3b', '4b', '5b', '6b', '7b', '8b']
 
         if self.round_number == 1:
-            NAMES_DOTS = ['Josh', 'Thomas', 'Lukas', 'Henrik', 'Stefan', 'Marc']
-            NAMES_PIXEL = ['Marcus', 'Niklas', 'Felix', 'Erik', 'Jonas', 'Paul']
+            NAMES_DOTS = ['Josh', 'Thomas', 'Lukas', 'Henrik', 'Stefan', 'Marc', 'Leo', 'Finn']
+            NAMES_PIXEL = ['Marcus', 'Niklas', 'Felix', 'Erik', 'Jonas', 'Paul', 'Noah', 'Liam']
             for p in self.get_players():
                 if p.id_in_group % 2 == 0:
-                    participant_vars = {'block_order': ['Active', 'Passive', 'Active', 'Passive', 'Active', 'Passive']}
+                    participant_vars = {'block_order': ['Active', 'Passive', 'Active', 'Passive', 'Active', 'Passive', 'Active', 'Passive']}
                 else:
-                    participant_vars = {'block_order': ['Passive', 'Active', 'Passive', 'Active', 'Passive', 'Active']}
-                for i in range(6):
+                    participant_vars = {'block_order': ['Passive', 'Active', 'Passive', 'Active', 'Passive', 'Active', 'Passive', 'Active']}
+                for i in range(8):
                     participant_vars[f'accuracy_{HIGH_IDS[i]}'] = random.choices(ACCURACY_LEVELS, weights=PROBS_DOMINANT, k=1)[0]
                     participant_vars[f'accuracy_{LOW_IDS[i]}'] = random.choices(ACCURACY_LEVELS, weights=PROBS_INVERSE, k=1)[0]
-                dots = random.sample(NAMES_DOTS, 6)
-                pixel = random.sample(NAMES_PIXEL, 6)
-                for i in range(6):
+                dots = random.sample(NAMES_DOTS, 8)
+                pixel = random.sample(NAMES_PIXEL, 8)
+                for i in range(8):
                     participant_vars[f'advisor_name_{HIGH_IDS[i]}'] = f"{dots[i]} (Dots & Co.)"
                     participant_vars[f'advisor_name_{LOW_IDS[i]}'] = f"{pixel[i]} (PixelHouse)"
                 p.participant.vars.update(participant_vars)
 
         rpb = ROUNDS_PER_BLOCK
-        HIGH_IDS = ['1a', '2a', '3a', '4a', '5a', '6a']
-        LOW_IDS = ['1b', '2b', '3b', '4b', '5b', '6b']
+        HIGH_IDS = ['1a', '2a', '3a', '4a', '5a', '6a', '7a', '8a']
+        LOW_IDS = ['1b', '2b', '3b', '4b', '5b', '6b', '7b', '8b']
         for p in self.get_players():
             rn = self.round_number
             current_block_idx = min((rn - 1) // rpb, Constants.num_blocks - 1)
@@ -104,6 +104,9 @@ class Group(BaseGroup):
     pass
 
 class Player(BasePlayer):
+    # Consent (round 1 only; stored on first round's player)
+    consent_accepted = models.BooleanField(initial=False, blank=True)
+    computer_number = models.StringField(blank=False, label="Computer number (top right of your desk)")
     # Admin datasheet: key round columns only
     block_type = models.StringField()
     advisor_high_name = models.StringField()
@@ -171,6 +174,14 @@ class Player(BasePlayer):
     confidence_6b = models.IntegerField(choices=ACCURACY_CHOICES)
     pay_6a = models.IntegerField(min=0, max=20)
     pay_6b = models.IntegerField(min=0, max=20)
+    confidence_7a = models.IntegerField(choices=ACCURACY_CHOICES)
+    confidence_7b = models.IntegerField(choices=ACCURACY_CHOICES)
+    pay_7a = models.IntegerField(min=0, max=20)
+    pay_7b = models.IntegerField(min=0, max=20)
+    confidence_8a = models.IntegerField(choices=ACCURACY_CHOICES)
+    confidence_8b = models.IntegerField(choices=ACCURACY_CHOICES)
+    pay_8a = models.IntegerField(min=0, max=20)
+    pay_8b = models.IntegerField(min=0, max=20)
 
     @staticmethod
     def _win_prob(p, true_color_red):

@@ -1,5 +1,6 @@
 # Player fields to show in the clean spreadsheet (excludes accuracy_1a... onwards)
 PLAYER_DISPLAY_FIELDS = [
+    'consent_accepted', 'computer_number',
     'block_type', 'block_end_round', 'advisor_high_name', 'advisor_low_name', 'true_color',
     'accuracy_high_this_block', 'accuracy_low_this_block', 'selected_advisor_firm',
     'advice_shown', 'initial_confidence', 'final_confidence',
